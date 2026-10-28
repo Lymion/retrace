@@ -1,0 +1,30 @@
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+/build
+next-env.d.ts
+*.tsbuildinfo
+
+# Monaco is copied here by scripts/copy-monaco.mjs on install
+/public/monaco/
+
+# local data: the SQLite database, temp extraction folders, logs
+/data/
+
+# generated sample zips (rebuild with `npm run samples:zip`)
+/samples/*.zip
+
+# env files: only the example is committed
+.env*
+!.env.example
+
+# misc
+.DS_Store
+*.pem
+npm-debug.log*
