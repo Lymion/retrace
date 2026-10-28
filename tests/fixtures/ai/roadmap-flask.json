@@ -1,0 +1,13 @@
+{
+  "summary": "Flask Notes is a tiny web app for writing short notes and deleting them, with no accounts. It is for anyone who wants a quick scratchpad in the browser. A Flask app renders Jinja templates and stores notes in SQLite through Python's built-in sqlite3 module.",
+  "levels": [
+    { "level": 0, "name": "Idea and scope", "goal": "A notes page: write, list, delete. No accounts.", "files": ["README.md"], "checkpoint": "Explain the app in 3 sentences.", "why_this_order": "The README states the idea before any code.", "evidence": "git", "skipped": false },
+    { "level": 1, "name": "Project setup", "goal": "Dependencies and configuration from environment variables.", "files": ["requirements.txt", "config.py", ".env"], "checkpoint": "pip install -r requirements.txt works and Config reads DATABASE.", "why_this_order": "app.py imports config.py, so configuration comes first.", "evidence": "deps", "skipped": false },
+    { "level": 2, "name": "Data design", "goal": "One notes table with a body and a created_at timestamp.", "files": ["schema.sql"], "checkpoint": "Draw the notes table.", "why_this_order": "db.py loads schema.sql.", "evidence": "deps", "skipped": false },
+    { "level": 3, "name": "Backend core", "goal": "A per-request SQLite connection and the note queries.", "files": ["db.py", "notes/__init__.py", "notes/models.py"], "checkpoint": "list_notes() returns rows from a fresh database.", "why_this_order": "notes/models.py imports get_db from db.py.", "evidence": "deps", "skipped": false },
+    { "level": 4, "name": "Auth and sessions", "goal": "This project has no accounts.", "files": [], "checkpoint": "A protected route rejects strangers.", "why_this_order": "Auth would protect the routes built in Level 3.", "evidence": "template", "skipped": true },
+    { "level": 5, "name": "Pages and routes", "goal": "Jinja templates and the blueprint routes that render them.", "files": ["templates/base.html", "templates/index.html", "notes/routes.py", "app.py"], "checkpoint": "python app.py shows the notes page.", "why_this_order": "routes.py renders index.html, which extends base.html; app.py registers the blueprint.", "evidence": "deps", "skipped": false },
+    { "level": 6, "name": "Testing", "goal": "Pytest tests for the empty list and creating a note.", "files": ["tests/test_notes.py"], "checkpoint": "pytest passes.", "why_this_order": "The tests import create_app from app.py.", "evidence": "git", "skipped": false },
+    { "level": 7, "name": "Ship and maintain", "goal": "No deployment or CI.", "files": [], "checkpoint": "It runs in production.", "why_this_order": "Shipping comes last.", "evidence": "template", "skipped": true }
+  ]
+}
