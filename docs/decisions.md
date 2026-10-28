@@ -120,3 +120,15 @@ Big decisions (stack changes, new services, cut features) are asked first.
 - **Review citations are kept only when they point at a real original file**, so the learner never
   clicks through to a file that does not exist.
 - **Learning events store summaries** (level, pass counts, concepts), never code.
+
+### Phase 9: learner profile
+
+- **Two ways the profile moves.** Results that already carry a score (rebuild reviews:
+  solid/shaky/missed; quiz answers: right/wrong) update mastery straight away with fixed steps, so
+  the profile works even when no AI provider is ready. Chat questions carry no score, so they are
+  batched (6 at a time, or on "Learn from my last questions") and `profile_update` on the fast model
+  decides what they mean and writes a note for each change.
+- **First sighting sets a starting point** (solid 0.7, shaky 0.4, missed 0.15; quiz right 0.6,
+  wrong 0.25), later results move it by a step, and mastery always stays between 0 and 1.
+- **Background work uses `after()`**, so the learner never waits on a profile update; outside a
+  Next.js request (tests, scripts) the job just runs unawaited.

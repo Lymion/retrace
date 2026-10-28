@@ -9,6 +9,7 @@ import type { AIProvider, AIRequest } from "../provider";
 import { renderPrompt } from "../prompts";
 import { getActiveProvider } from "../registry";
 import { collectOutsideContext } from "../../context-providers/registry";
+import { recordLearningEvent } from "../../learner/events";
 
 // The two streamed tasks: free chat (including "Explain this selection")
 // and teach_level, the Tour mode lesson.
@@ -45,6 +46,11 @@ function saveMessage(
   db.insert(messages)
     .values({ ...values, levelId: values.levelId ?? null, fileId: values.fileId ?? null })
     .run();
+}
+
+function levelLabel(db: Db, levelId: number): string | null {
+  const level = db.select().from(levels).where(eq(levels.id, levelId)).get();
+  return level ? `${level.number}. ${level.name}` : null;
 }
 
 export function prepareChat(
@@ -100,6 +106,15 @@ export function prepareChat(
     // request (and its retry) never leaves a question without an answer.
     save: (reply) => {
       saveMessage(db, { ...input, role: "user", kind: "chat", content: input.message });
+      // What the learner asks is a signal for their profile (see learner/profile.ts).
+      recordLearningEvent(db, {
+        projectId: input.projectId,
+        kind: "chat",
+        detail: {
+          question: input.message.slice(0, 300),
+          level: input.levelId ? levelLabel(db, input.levelId) : null,
+        },
+      });
       saveMessage(db, {
         projectId: input.projectId,
         levelId: input.levelId,

@@ -1,0 +1,6 @@
+{
+  "changes": [
+    { "concept": "SQL Injection", "layer": "security", "delta": -0.15, "note": "Asked twice why the search query is dangerous; use the 'note passed to the cashier' analogy." },
+    { "concept": "jwt", "layer": "security", "delta": 0.1, "note": "Asked a good follow-up about token expiry, so the basics are there." }
+  ]
+}

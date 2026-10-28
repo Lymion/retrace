@@ -5,6 +5,8 @@ import { getEnv } from "@/server/env";
 import { handleRouteError, readJson } from "@/server/http";
 import { checkAiRateLimit } from "@/server/rate-limit";
 import { getProject } from "@/server/repo/projects";
+import { updateProfileFromChat } from "@/server/learner/profile";
+import { afterResponse } from "@/server/after-response";
 
 const ChatSchema = z
   .object({
@@ -32,6 +34,8 @@ export async function POST(request: Request) {
     getProject(body.data.projectId);
     checkAiRateLimit(getEnv().AI_RATE_LIMIT_PER_MIN);
     const task = prepareChat(body.data);
+    // Once a batch of questions has built up, update the profile after this reply is sent.
+    afterResponse("profile.update_failed", () => updateProfileFromChat());
     return await streamText(task.provider.stream(task.request, request.signal), {
       onComplete: task.save,
     });

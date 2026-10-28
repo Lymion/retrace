@@ -16,6 +16,7 @@ import type { AIProvider } from "../provider";
 import { renderPrompt } from "../prompts";
 import { getActiveProvider } from "../registry";
 import { recordLearningEvent } from "../../learner/events";
+import { applyReviewConcepts } from "../../learner/profile";
 
 // Rebuild mode: a spec without the original code, the learner's files, and
 // a review that compares them with the original. "Different is not wrong":
@@ -283,9 +284,12 @@ export async function reviewRebuild(
   if (level.status !== "done") {
     db.update(levels).set({ status: "rebuilt" }).where(eq(levels.id, level.id)).run();
   }
+  // A review scores each concept, so the profile moves right away, no AI needed.
+  applyReviewConcepts(db, review.concepts);
   recordLearningEvent(db, {
     projectId,
     kind: "rebuild_review",
+    processed: true,
     detail: {
       level: `${level.number}. ${level.name}`,
       passed: review.verdicts.filter((v) => v.passed).length,
