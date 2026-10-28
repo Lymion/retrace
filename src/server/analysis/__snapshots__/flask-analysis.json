@@ -1,0 +1,137 @@
+{
+  "fileCount": 13,
+  "totalLines": 186,
+  "languages": [
+    {
+      "name": "Python",
+      "files": 7,
+      "lines": 125
+    },
+    {
+      "name": "HTML",
+      "files": 2,
+      "lines": 32
+    },
+    {
+      "name": "Markdown",
+      "files": 1,
+      "lines": 15
+    },
+    {
+      "name": "SQL",
+      "files": 1,
+      "lines": 6
+    },
+    {
+      "name": "Config",
+      "files": 1,
+      "lines": 4
+    },
+    {
+      "name": "Plain text",
+      "files": 1,
+      "lines": 4
+    }
+  ],
+  "layers": {
+    "frontend": 2,
+    "backend": 3,
+    "database": 3,
+    "security": 0,
+    "config": 3,
+    "test": 1,
+    "other": 1
+  },
+  "entryPoints": [
+    "app.py"
+  ],
+  "dependencies": [
+    {
+      "ecosystem": "pip",
+      "name": "Flask",
+      "version": "==3.0.3",
+      "dev": false,
+      "manifest": "requirements.txt"
+    },
+    {
+      "ecosystem": "pip",
+      "name": "python-dotenv",
+      "version": "==1.0.1",
+      "dev": false,
+      "manifest": "requirements.txt"
+    },
+    {
+      "ecosystem": "pip",
+      "name": "pytest",
+      "version": "==8.3.2",
+      "dev": false,
+      "manifest": "requirements.txt"
+    }
+  ],
+  "imports": [
+    {
+      "from": "app.py",
+      "to": "config.py"
+    },
+    {
+      "from": "app.py",
+      "to": "db.py"
+    },
+    {
+      "from": "app.py",
+      "to": "notes/routes.py"
+    },
+    {
+      "from": "db.py",
+      "to": "schema.sql"
+    },
+    {
+      "from": "notes/models.py",
+      "to": "db.py"
+    },
+    {
+      "from": "notes/routes.py",
+      "to": "notes/models.py"
+    },
+    {
+      "from": "notes/routes.py",
+      "to": "templates/index.html"
+    },
+    {
+      "from": "templates/index.html",
+      "to": "templates/base.html"
+    },
+    {
+      "from": "tests/test_notes.py",
+      "to": "app.py"
+    }
+  ],
+  "externalImports": [
+    "dotenv",
+    "flask",
+    "pytest"
+  ],
+  "buildOrder": [
+    "README.md",
+    ".env",
+    "config.py",
+    "requirements.txt",
+    "schema.sql",
+    "db.py",
+    "notes/models.py",
+    "notes/__init__.py",
+    "templates/base.html",
+    "templates/index.html",
+    "notes/routes.py",
+    "app.py",
+    "tests/test_notes.py"
+  ],
+  "history": {
+    "available": false,
+    "commitCount": 0,
+    "truncated": false,
+    "firstSeen": {}
+  },
+  "skipped": [],
+  "redactionCount": 2
+}

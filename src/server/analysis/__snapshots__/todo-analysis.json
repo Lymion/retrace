@@ -1,0 +1,246 @@
+{
+  "fileCount": 20,
+  "totalLines": 384,
+  "languages": [
+    {
+      "name": "JavaScript",
+      "files": 12,
+      "lines": 294
+    },
+    {
+      "name": "JSON",
+      "files": 2,
+      "lines": 35
+    },
+    {
+      "name": "Markdown",
+      "files": 1,
+      "lines": 16
+    },
+    {
+      "name": "SQL",
+      "files": 1,
+      "lines": 13
+    },
+    {
+      "name": "HTML",
+      "files": 1,
+      "lines": 12
+    },
+    {
+      "name": "Config",
+      "files": 2,
+      "lines": 9
+    },
+    {
+      "name": "Plain text",
+      "files": 1,
+      "lines": 5
+    }
+  ],
+  "layers": {
+    "frontend": 6,
+    "backend": 3,
+    "database": 2,
+    "security": 2,
+    "config": 6,
+    "test": 0,
+    "other": 1
+  },
+  "entryPoints": [
+    "client/index.html",
+    "server/index.js"
+  ],
+  "dependencies": [
+    {
+      "ecosystem": "npm",
+      "name": "react",
+      "version": "^18.3.1",
+      "dev": false,
+      "manifest": "client/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "react-dom",
+      "version": "^18.3.1",
+      "dev": false,
+      "manifest": "client/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@vitejs/plugin-react",
+      "version": "^4.3.1",
+      "dev": true,
+      "manifest": "client/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "vite",
+      "version": "^5.4.0",
+      "dev": true,
+      "manifest": "client/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "bcrypt",
+      "version": "^5.1.1",
+      "dev": false,
+      "manifest": "server/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "better-sqlite3",
+      "version": "^11.0.0",
+      "dev": false,
+      "manifest": "server/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "cors",
+      "version": "^2.8.5",
+      "dev": false,
+      "manifest": "server/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "dotenv",
+      "version": "^16.4.5",
+      "dev": false,
+      "manifest": "server/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "express",
+      "version": "^4.19.2",
+      "dev": false,
+      "manifest": "server/package.json"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "jsonwebtoken",
+      "version": "^9.0.2",
+      "dev": false,
+      "manifest": "server/package.json"
+    }
+  ],
+  "imports": [
+    {
+      "from": "client/index.html",
+      "to": "client/src/main.jsx"
+    },
+    {
+      "from": "client/src/App.jsx",
+      "to": "client/src/pages/Login.jsx"
+    },
+    {
+      "from": "client/src/App.jsx",
+      "to": "client/src/pages/Todos.jsx"
+    },
+    {
+      "from": "client/src/main.jsx",
+      "to": "client/src/App.jsx"
+    },
+    {
+      "from": "client/src/pages/Login.jsx",
+      "to": "client/src/api.js"
+    },
+    {
+      "from": "client/src/pages/Todos.jsx",
+      "to": "client/src/api.js"
+    },
+    {
+      "from": "server/app.js",
+      "to": "server/routes/auth.js"
+    },
+    {
+      "from": "server/app.js",
+      "to": "server/routes/todos.js"
+    },
+    {
+      "from": "server/db.js",
+      "to": "server/schema.sql"
+    },
+    {
+      "from": "server/index.js",
+      "to": "server/app.js"
+    },
+    {
+      "from": "server/routes/auth.js",
+      "to": "server/db.js"
+    },
+    {
+      "from": "server/routes/auth.js",
+      "to": "server/middleware/auth.js"
+    },
+    {
+      "from": "server/routes/todos.js",
+      "to": "server/db.js"
+    },
+    {
+      "from": "server/routes/todos.js",
+      "to": "server/middleware/auth.js"
+    }
+  ],
+  "externalImports": [
+    "@vitejs/plugin-react",
+    "bcrypt",
+    "better-sqlite3",
+    "cors",
+    "dotenv",
+    "express",
+    "jsonwebtoken",
+    "react",
+    "react-dom",
+    "vite"
+  ],
+  "buildOrder": [
+    "README.md",
+    ".env",
+    ".env.example",
+    ".gitignore",
+    "client/package.json",
+    "client/vite.config.js",
+    "server/package.json",
+    "server/schema.sql",
+    "server/db.js",
+    "server/middleware/auth.js",
+    "server/routes/todos.js",
+    "server/routes/auth.js",
+    "server/app.js",
+    "server/index.js",
+    "client/src/api.js",
+    "client/src/pages/Login.jsx",
+    "client/src/pages/Todos.jsx",
+    "client/src/App.jsx",
+    "client/src/main.jsx",
+    "client/index.html"
+  ],
+  "history": {
+    "available": true,
+    "commitCount": 7,
+    "truncated": false,
+    "firstSeen": {
+      ".gitignore": 0,
+      "README.md": 0,
+      ".env.example": 1,
+      "server/package.json": 1,
+      "server/db.js": 2,
+      "server/schema.sql": 2,
+      "server/app.js": 3,
+      "server/index.js": 3,
+      "server/routes/todos.js": 3,
+      "server/middleware/auth.js": 4,
+      "server/routes/auth.js": 4,
+      "client/index.html": 5,
+      "client/package.json": 5,
+      "client/vite.config.js": 5,
+      "client/src/App.jsx": 5,
+      "client/src/main.jsx": 5,
+      "client/src/pages/Login.jsx": 5,
+      "client/src/pages/Todos.jsx": 5,
+      "client/src/api.js": 6
+    }
+  },
+  "skipped": [],
+  "redactionCount": 4
+}

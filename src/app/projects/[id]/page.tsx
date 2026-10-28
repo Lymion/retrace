@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AnalysisOverview } from "@/features/explorer/AnalysisOverview";
 import { ProjectExplorer } from "@/features/explorer/ProjectExplorer";
+import { ProjectAnalysisSchema } from "@/shared/analysis";
 import { parseId } from "@/server/http";
 import { getProject, listFiles, listRedactions } from "@/server/repo/projects";
 
@@ -16,6 +18,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   }
   const files = listFiles(projectId);
   const redactions = listRedactions(projectId);
+  const analysis = ProjectAnalysisSchema.safeParse(project.analysis);
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
@@ -32,6 +35,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           {files.length} files
         </p>
       </header>
+      {analysis.success ? (
+        <AnalysisOverview analysis={analysis.data} aiSummary={project.summary} />
+      ) : (
+        <p className="text-sm text-muted">{project.error ?? "This project has no analysis yet."}</p>
+      )}
       <ProjectExplorer projectId={projectId} files={files} redactions={redactions} />
     </div>
   );
