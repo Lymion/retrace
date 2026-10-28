@@ -39,7 +39,7 @@ export function prepareFile(filePath: string, data: Buffer): PreparedFile | null
   if (looksBinary(data)) return null;
   const text = data
     .toString("utf8")
-    .replace(/^﻿/, "") // byte-order mark
+    .replace(/^\uFEFF/, "") // byte-order mark
     .replace(/\r\n?/g, "\n"); // one line-ending style, so line numbers match everywhere
   const { content, redactions } = redactSecrets(filePath, text);
   return {

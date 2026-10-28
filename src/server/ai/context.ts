@@ -18,7 +18,7 @@ const FOCUS_PADDING = 80;
 
 /** Stops uploaded text from closing our <file> tag and posing as instructions. */
 function neutralize(text: string): string {
-  return text.replace(/<\/?file\b/gi, (tag) => tag.replace("<", "<​"));
+  return text.replace(/<\/?file\b/gi, (tag) => tag.replace("<", "<\u200b"));
 }
 
 function numbered(lines: string[], start: number): string {

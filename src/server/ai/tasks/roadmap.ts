@@ -4,7 +4,7 @@ import { files as filesTable, gitCommits, levels as levelsTable, projects } from
 import { ProjectAnalysisSchema } from "@/shared/analysis";
 import { type RoadmapOutput, RoadmapSchema } from "@/shared/contracts";
 import type { Evidence, Layer } from "@/shared/enums";
-import { templateTable } from "@/shared/levels";
+import { levelsFor, templateTable } from "@/shared/levels";
 import { type DraftFile, type DraftLevel, draftRoadmap } from "../../analysis/level-draft";
 import { HttpError, notFound } from "../../http";
 import { getSettings } from "../../settings";
@@ -225,7 +225,7 @@ export async function generateRoadmap(
     task: "roadmap",
     model: getSettings(db).tutorModel,
     instructions: renderPrompt("roadmap", {
-      level_template: templateTable(),
+      level_template: templateTable(levelsFor(project.profile)),
       project_data: projectData(db, projectId, draft),
     }),
     messages: [{ role: "user", content: "Build the roadmap for this project as JSON." }],

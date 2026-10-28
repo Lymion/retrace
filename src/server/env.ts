@@ -18,6 +18,8 @@ export const EnvSchema = z.object({
   MAX_UPLOAD_MB: positiveInt(50),
   MAX_FILES: positiveInt(5000),
   AI_RATE_LIMIT_PER_MIN: positiveInt(20),
+  /** Optional JSON file of outside notes for the tutor (see docs/extending.md). */
+  RETRACE_CONTEXT_FILE: optionalSecret,
 });
 
 export type Env = z.infer<typeof EnvSchema>;
