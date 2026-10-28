@@ -233,11 +233,11 @@
       "server/routes/auth.js": 4,
       "client/index.html": 5,
       "client/package.json": 5,
-      "client/vite.config.js": 5,
       "client/src/App.jsx": 5,
       "client/src/main.jsx": 5,
       "client/src/pages/Login.jsx": 5,
       "client/src/pages/Todos.jsx": 5,
+      "client/vite.config.js": 5,
       "client/src/api.js": 6
     }
   },

@@ -35,7 +35,8 @@ async function blobPaths(gitdir: string, oid: string): Promise<string[]> {
       return true;
     },
   });
-  return paths;
+  // walk() reads folders in parallel, so sort to make the order the same every run.
+  return paths.sort();
 }
 
 /** Paths that differ between a commit and its parent, skipping unchanged folders. */
@@ -53,7 +54,8 @@ async function changedPaths(gitdir: string, oid: string, parentOid: string): Pro
       return true;
     },
   });
-  return paths;
+  // walk() reads folders in parallel, so sort to make the order the same every run.
+  return paths.sort();
 }
 
 export async function readGitHistory(
