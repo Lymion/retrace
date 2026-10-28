@@ -1,0 +1,24 @@
+import sqlite3
+
+from flask import current_app, g
+
+
+def get_db():
+    # One connection per request, stored on Flask's request-scoped `g` object.
+    if "db" not in g:
+        g.db = sqlite3.connect(current_app.config["DATABASE"])
+        g.db.row_factory = sqlite3.Row
+    return g.db
+
+
+def close_db(_error=None):
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
+
+
+def init_db(app):
+    app.teardown_appcontext(close_db)
+    with app.app_context():
+        with app.open_resource("schema.sql") as f:
+            get_db().executescript(f.read().decode("utf8"))

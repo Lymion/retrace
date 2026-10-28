@@ -2,6 +2,7 @@
   "name": "retrace",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Learn app development by rebuilding your own finished projects, level by level.",
   "engines": {
     "node": ">=22"

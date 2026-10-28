@@ -10,7 +10,7 @@
   --text: #e6edf3;
   --muted: #9da7b3;
   --accent: #6cb6ff;
-  --accent-strong: #388bfd;
+  --accent-strong: #1f6feb;
   --ok: #56d364;
   --warn: #e3b341;
   --danger: #ff7b72;
@@ -47,6 +47,28 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text hover:border-accent disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  /* White on #1f6feb is 4.6:1, enough for small text. */
+  .btn-primary {
+    @apply border-accent-strong bg-accent-strong text-white hover:bg-[#1a5fd0];
+  }
+  .btn-ghost {
+    @apply border-transparent bg-transparent hover:bg-surface-2;
+  }
+  .input {
+    @apply w-full rounded-md border border-border bg-bg px-3 py-1.5 text-sm text-text placeholder:text-muted focus:border-accent focus:outline-none;
+  }
+  .card {
+    @apply rounded-lg border border-border bg-surface;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2 py-0.5 text-xs text-muted;
+  }
 }
 
 /* Visible keyboard focus everywhere, never removed. */
