@@ -173,3 +173,42 @@ body {
 .annot-line {
   background: rgba(108, 182, 255, 0.06);
 }
+
+/* The inline note under a line, opened from the gutter or the notes list. */
+.annot-zone {
+  position: relative;
+  margin: 2px 8px 2px 48px;
+  padding: 6px 28px 6px 10px;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: normal;
+  overflow: hidden;
+}
+.annot-zone-label {
+  font-weight: 600;
+}
+.annot-zone-concept {
+  color: var(--concept);
+}
+.annot-zone-security {
+  color: var(--security);
+}
+.annot-zone-pattern {
+  color: var(--pattern);
+}
+.annot-zone-gotcha {
+  color: var(--gotcha);
+}
+.annot-zone-close {
+  position: absolute;
+  top: 2px;
+  right: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+}

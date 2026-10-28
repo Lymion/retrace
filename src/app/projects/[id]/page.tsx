@@ -41,12 +41,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </Link>{" "}
         / <span className="text-text">{project.name}</span>
       </nav>
-      <header>
-        <h1 className="text-2xl font-semibold">{project.name}</h1>
-        <p className="mt-1 text-sm text-muted">
-          {project.source === "github" ? "From GitHub" : "Uploaded zip"} · {project.sourceRef} ·{" "}
-          {files.length} files
-        </p>
+      <header className="flex flex-wrap items-start gap-3">
+        <div className="mr-auto">
+          <h1 className="text-2xl font-semibold">{project.name}</h1>
+          <p className="mt-1 text-sm text-muted">
+            {project.source === "github" ? "From GitHub" : "Uploaded zip"} · {project.sourceRef} ·{" "}
+            {files.length} files
+          </p>
+        </div>
+        <Link href={`/projects/${projectId}/workspace`} className="btn btn-primary">
+          Open workspace
+        </Link>
       </header>
       {analysis.success ? (
         <AnalysisOverview analysis={analysis.data} aiSummary={project.summary} />

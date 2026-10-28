@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ErrorState, Spinner } from "@/components/states";
@@ -148,6 +149,12 @@ export function LevelMap({ projectId, levels }: { projectId: number; levels: Lev
                   <span className="chip" title={EVIDENCE_LABEL[level.evidence].title}>
                     from {EVIDENCE_LABEL[level.evidence].text}
                   </span>
+                  <Link
+                    href={`/projects/${projectId}/workspace?level=${level.id}`}
+                    className="btn btn-ghost ml-auto text-accent"
+                  >
+                    {level.skipped ? "Learn this missing level" : "Open in workspace"} →
+                  </Link>
                 </div>
                 <p className="mt-2 text-sm">{level.goal}</p>
                 <p className="mt-2 text-sm">

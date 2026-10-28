@@ -1,0 +1,18 @@
+```json
+{
+  "annotations": [
+    { "line": 2, "note": "This file needs the database connection from db.js. Requiring the same module everywhere gives every route one shared connection.", "category": "pattern" },
+    { "line": 3, "note": "requireAuth is the guard from the auth level: every route below it needs a valid login token.", "category": "concept" },
+    { "line": 5, "note": "express.Router() is like a mini app for one resource. app.js mounts it at /api/todos, so these paths are relative to that.", "category": "concept" },
+    { "line": 6, "note": "router.use(requireAuth) protects every todo route at once, instead of repeating the check in each handler.", "category": "pattern" },
+    { "line": 9, "end_line": 10, "note": "The ? placeholder lets SQLite insert req.userId safely as data, never as SQL. Filtering by user_id means people only see their own todos.", "category": "security" },
+    { "line": 13, "note": "Missing input check: q comes straight from the URL query string with no length limit or type check.", "category": "gotcha" },
+    { "line": 16, "note": "SQL injection: q is pasted into the SQL text. An attacker can send q = %' OR '1'='1 and read every user's todos. Use LIKE ? and pass `%${q}%` as a parameter.", "category": "security" },
+    { "line": 21, "note": "title is stored without checking it exists or has a sane length, so an empty or huge title is accepted.", "category": "gotcha" },
+    { "line": 25, "note": "Status 201 Created tells the client a new row exists. Returning the new id lets the client add it to the list without reloading.", "category": "concept" },
+    { "line": 30, "end_line": 34, "note": "Adding AND user_id = ? to the WHERE stops one user ticking another user's todo by guessing its id.", "category": "security" },
+    { "line": 39, "note": "204 No Content: the delete worked and there is nothing to send back.", "category": "concept" },
+    { "line": 99, "note": "This line does not exist and must be dropped.", "category": "gotcha" }
+  ]
+}
+```
