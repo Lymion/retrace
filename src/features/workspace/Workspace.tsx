@@ -183,6 +183,21 @@ export function Workspace({
           role="tablist"
           aria-label="Mode"
           className="ml-auto flex rounded-md border border-border p-0.5"
+          onKeyDown={(event) => {
+            // Left/Right arrows move between modes, as in any tab list.
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const step = event.key === "ArrowRight" ? 1 : -1;
+            const next =
+              AVAILABLE_MODES[
+                (AVAILABLE_MODES.indexOf(mode) + step + AVAILABLE_MODES.length) %
+                  AVAILABLE_MODES.length
+              ]!;
+            setMode(next);
+            (
+              event.currentTarget.querySelector(`[data-mode="${next}"]`) as HTMLElement | null
+            )?.focus();
+          }}
         >
           {MODES.map((m) => {
             const available = AVAILABLE_MODES.includes(m);
@@ -191,6 +206,8 @@ export function Workspace({
                 key={m}
                 type="button"
                 role="tab"
+                data-mode={m}
+                tabIndex={mode === m ? 0 : -1}
                 aria-selected={mode === m}
                 disabled={!available}
                 title={available ? undefined : "Coming in a later phase"}
