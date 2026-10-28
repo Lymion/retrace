@@ -1,0 +1,24 @@
+{
+  "title": "Recipe box",
+  "domain": "cooking",
+  "spec": {
+    "summary": "Each signed-in user keeps a private list of recipes with a name and a cooking time in minutes.",
+    "inputs": ["GET /api/recipes", "POST /api/recipes with { name, minutes }", "DELETE /api/recipes/:id"],
+    "outputs": ["JSON lists and objects", "201 on create, 204 on delete, 400 on bad input"],
+    "acceptance_checks": [
+      { "id": "A1", "description": "Recipes are scoped to the logged-in user.", "how_to_verify": "Every query filters by req.userId." },
+      { "id": "A2", "description": "All SQL uses placeholders.", "how_to_verify": "No query is built with string templates." },
+      { "id": "A3", "description": "POST rejects a missing name or a non-positive minutes value with 400.", "how_to_verify": "Send { name: '' } and { minutes: 0 }." }
+    ]
+  },
+  "patterns_reused": ["router per resource", "requireAuth middleware", "parameterised queries"],
+  "files_needed": [{ "path": "server/routes/recipes.js", "purpose": "The recipes router." }],
+  "skeleton": [
+    { "path": "server/routes/recipes.js", "content": "const express = require(\"express\");\nconst db = require(\"../db\");\nconst { requireAuth } = require(\"../middleware/auth\");\n\nconst router = express.Router();\nrouter.use(requireAuth);\n\n// TODO: GET / lists the current user's recipes\n\n// TODO: POST / validates { name, minutes } and inserts a recipe\n\n// TODO: DELETE /:id deletes one of the current user's recipes\n\nmodule.exports = router;\n" }
+  ],
+  "hints": [
+    "Look at how server/routes/todos.js filters by user.",
+    "Validation goes before the INSERT: check typeof name and Number.isInteger(minutes).",
+    "Use db.prepare(\"INSERT INTO recipes (user_id, name, minutes) VALUES (?, ?, ?)\")."
+  ]
+}

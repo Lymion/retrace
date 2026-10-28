@@ -1,0 +1,17 @@
+{
+  "lessons": [
+    { "title": "Hash passwords with bcrypt", "why_it_matters": "A stolen database does not reveal anyone's password." },
+    { "title": "One API module on the client", "why_it_matters": "The token is added in one place, so no request forgets it." }
+  ],
+  "missing": [
+    { "practice": "Tests", "why_it_matters": "Without tests every change risks breaking login or todos.", "evidence": "No test files; Level 9 (Testing) was skipped." },
+    { "practice": "Input validation", "why_it_matters": "Empty or huge titles are stored as-is.", "evidence": "POST /api/todos saves req.body.title without checks." },
+    { "practice": "CI/CD", "why_it_matters": "Nothing runs checks before code ships.", "evidence": "No .github/workflows folder." }
+  ],
+  "checklist": [
+    { "title": "Keep secrets in .env, never in code", "why_it_matters": "Code gets shared; secrets must not.", "source": "gap" },
+    { "title": "Add a test for every API route", "why_it_matters": "Change code without fear.", "source": "gap" },
+    { "title": "Hash passwords with bcrypt or argon2", "why_it_matters": "Protects users if the database leaks.", "source": "lesson" },
+    { "title": "Keep secrets in .env, never in code", "why_it_matters": "Duplicate on purpose: must be added once.", "source": "gap" }
+  ]
+}

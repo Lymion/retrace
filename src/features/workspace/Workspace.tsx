@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import { CodeViewer, type Selection } from "@/components/CodeViewer";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { NotesPanel } from "@/features/annotations/NotesPanel";
+import { AuditPanel } from "@/features/audit/AuditPanel";
+import { QuizPanel } from "@/features/quiz/QuizPanel";
 import { RebuildMode } from "@/features/rebuild/RebuildMode";
 import { useAnnotations } from "@/features/annotations/useAnnotations";
 import { TutorPanel } from "@/features/tutor/TutorPanel";
@@ -25,7 +27,7 @@ const MODE_LABEL: Record<Mode, string> = {
   quiz: "Quiz",
   audit: "Audit",
 };
-const AVAILABLE_MODES: Mode[] = ["tour", "rebuild"];
+const AVAILABLE_MODES: Mode[] = ["tour", "rebuild", "quiz", "audit"];
 
 interface FileContent {
   id: number;
@@ -58,6 +60,7 @@ export function Workspace({
   const [showAll, setShowAll] = useState(levels.length === 0);
   const [depth, setDepth] = useState(initialDepth);
   const [openLine, setOpenLine] = useState<number | null>(null);
+  const [focusLine, setFocusLine] = useState<number | null>(initial.line ?? null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [marking, setMarking] = useState(false);
   const panel = usePanelPlacement();
@@ -89,17 +92,19 @@ export function Workspace({
   function chooseFile(id: number) {
     setFileId(id);
     setOpenLine(null);
+    setFocusLine(null);
     setSelection(null);
     const owner = files.find((f) => f.id === id)?.levelId;
     if (owner && owner !== levelId && !showAll) setLevelId(owner);
   }
 
-  /** A file path the tutor mentioned was clicked. */
+  /** A file path the tutor or the audit mentioned was clicked: show it in Tour mode. */
   function openFileByPath(path: string, line: number | null) {
     const target = files.find((f) => f.path === path);
     if (!target) return;
     chooseFile(target.id);
-    if (line) setOpenLine(line);
+    setMode("tour");
+    if (line) setFocusLine(line);
   }
 
   function changeDepth(value: typeof depth) {
@@ -254,7 +259,39 @@ export function Workspace({
               />
             </aside>
 
-            <section aria-label="Code" className="flex min-h-0 min-w-0 flex-col">
+            {mode === "audit" && (
+              <section aria-label="Audit" className="min-h-0 min-w-0 overflow-auto p-4">
+                <AuditPanel
+                  key={levelId ?? "project"}
+                  projectId={project.id}
+                  levelId={level && !level.skipped ? level.id : null}
+                  scopeLabel={
+                    level && !level.skipped
+                      ? `Level ${level.number}: ${level.name}`
+                      : "whole project"
+                  }
+                  onShowInCode={openFileByPath}
+                />
+              </section>
+            )}
+            {mode === "quiz" && (
+              <section aria-label="Quiz" className="min-h-0 min-w-0 overflow-auto p-4">
+                <QuizPanel
+                  key={levelId ?? "project"}
+                  projectId={project.id}
+                  levelId={level && !level.skipped ? level.id : null}
+                  scopeLabel={
+                    level && !level.skipped
+                      ? `Level ${level.number}: ${level.name}`
+                      : "whole project"
+                  }
+                />
+              </section>
+            )}
+            <section
+              aria-label="Code"
+              className={`min-h-0 min-w-0 flex-col ${mode === "tour" ? "flex" : "hidden"}`}
+            >
               {!fileId && (
                 <div className="p-6">
                   <EmptyState title="No file open">
@@ -284,6 +321,7 @@ export function Workspace({
                       openLine={openLine}
                       onOpenLine={setOpenLine}
                       onSelection={setSelection}
+                      focusLine={focusLine}
                     />
                   </div>
                   <div className="h-44 shrink-0 overflow-hidden border-t border-border bg-surface">

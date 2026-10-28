@@ -42,6 +42,8 @@ function save(value: Placement) {
 
 export const PANEL_WIDTH = 420;
 export const PANEL_HEIGHT = 560;
+/** Below the top bar and the workspace toolbar, so the panel never hides the mode switch. */
+const TOP_LIMIT = 100;
 
 /** The floating panel's height: its normal size, or less on a short window. */
 export function panelHeight(): number {
@@ -55,7 +57,10 @@ function clamp(value: Placement): Placement {
   return {
     ...value,
     x: Math.min(Math.max(8, value.x), Math.max(8, window.innerWidth - PANEL_WIDTH - 8)),
-    y: Math.min(Math.max(56, value.y), Math.max(56, window.innerHeight - panelHeight() - 8)),
+    y: Math.min(
+      Math.max(TOP_LIMIT, value.y),
+      Math.max(TOP_LIMIT, window.innerHeight - panelHeight() - 8),
+    ),
   };
 }
 
@@ -139,7 +144,12 @@ export function usePanelPlacement() {
   const toggleFloating = useCallback(() => {
     if (placement.floating) update({ floating: false });
     else
-      update({ floating: true, collapsed: false, x: window.innerWidth - PANEL_WIDTH - 24, y: 72 });
+      update({
+        floating: true,
+        collapsed: false,
+        x: window.innerWidth - PANEL_WIDTH - 24,
+        y: TOP_LIMIT + 8,
+      });
   }, [placement.floating, update]);
 
   return { placement, update, startDrag, moveDrag, endDrag, keyMove, toggleFloating };

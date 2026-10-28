@@ -41,7 +41,10 @@ export default async function WorkspacePage({
   }));
 
   const levelId = parseId(one(query.level));
-  const fileId = parseId(one(query.file));
+  // ?path= opens a file by its path (links from the project page), ?line= jumps to a line.
+  const byPath = one(query.path);
+  const fileId = parseId(one(query.file)) ?? files.find((f) => f.path === byPath)?.id ?? null;
+  const line = parseId(one(query.line));
   const mode = MODES.find((m) => m === one(query.mode)) ?? ("tour" as Mode);
 
   return (
@@ -60,6 +63,7 @@ export default async function WorkspacePage({
         levelId: levels.some((l) => l.id === levelId) ? levelId : null,
         fileId: files.some((f) => f.id === fileId) ? fileId : null,
         mode,
+        line,
       }}
     />
   );

@@ -132,3 +132,23 @@ Big decisions (stack changes, new services, cut features) are asked first.
   wrong 0.25), later results move it by a step, and mastery always stays between 0 and 1.
 - **Background work uses `after()`**, so the learner never waits on a profile update; outside a
   Next.js request (tests, scripts) the job just runs unawaited.
+
+### Phases 10 and 11: Tier 2
+
+- **One `report` table** (migration 0001) keeps the full lessons-and-gaps report for display. The
+  reusable checklist lives in `checklist_item`, deduplicated by title, so it grows across projects
+  without repeats.
+- **Code for whole-project tasks is packed by layer** (security, backend, database first) into a
+  line budget; files that do not fit are sent as outlines. Audit findings are kept only for files
+  that were actually sent, and line numbers past the end of a file are dropped.
+- **Quiz answers never reach the browser before the learner answers**: the quiz view has no
+  `correctAnswer` or `explanation` for unanswered questions. Multiple choice is marked on the
+  server without AI (the model must make the answer exactly one of the options; checked, with one
+  retry); free-text answers go to `quiz_grade` on the fast model, with the answer wrapped in an
+  `<answer>` tag so it cannot instruct the grader.
+- **Remix hints are released one at a time** by the server; the challenge view only includes hints
+  already asked for. Submitting the untouched skeleton is refused.
+- **Quiz and remix difficulty follow the profile**: the average mastery picks gentle, medium or
+  challenging wording in the prompt.
+- **Audit mode and Quiz mode keep the tutor**; Rebuild mode does not (see above). Links from audit
+  findings and tutor replies open the file in Tour mode at that line (`?path=` and `?line=`).

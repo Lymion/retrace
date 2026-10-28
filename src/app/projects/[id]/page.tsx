@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ProjectAudit } from "@/features/audit/ProjectAudit";
 import { AnalysisOverview } from "@/features/explorer/AnalysisOverview";
 import { ProjectExplorer } from "@/features/explorer/ProjectExplorer";
+import { AlternativesSection, GapsSection } from "@/features/insights/InsightSections";
 import { LevelMap, type LevelView } from "@/features/roadmap/LevelMap";
 import { ProjectAnalysisSchema } from "@/shared/analysis";
 import { parseId } from "@/server/http";
@@ -49,6 +51,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             {files.length} files
           </p>
         </div>
+        <Link href={`/projects/${projectId}/challenge`} className="btn">
+          Remix challenge
+        </Link>
         <Link href={`/projects/${projectId}/workspace`} className="btn btn-primary">
           Open workspace
         </Link>
@@ -59,6 +64,13 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <p className="text-sm text-muted">{project.error ?? "This project has no analysis yet."}</p>
       )}
       {analysis.success && <LevelMap projectId={projectId} levels={levels} />}
+      {analysis.success && (
+        <>
+          <ProjectAudit projectId={projectId} />
+          <AlternativesSection projectId={projectId} />
+          <GapsSection projectId={projectId} />
+        </>
+      )}
       <ProjectExplorer projectId={projectId} files={files} redactions={redactions} />
     </div>
   );

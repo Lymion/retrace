@@ -32,7 +32,8 @@ export function normalizeConcept(name: string): string {
 
 const clamp = (n: number) => Math.min(1, Math.max(0, n));
 
-function conceptId(db: Db, name: string, layer: Layer): number {
+/** The id of a concept, creating it the first time it is named. */
+export function conceptId(db: Db, name: string, layer: Layer): number {
   const normalized = normalizeConcept(name);
   const existing = db.select().from(concepts).where(eq(concepts.name, normalized)).get();
   if (existing) return existing.id;
@@ -93,6 +94,17 @@ export function applyReviewConcepts(
   reviewed: { name: string; layer: Layer; result: "solid" | "shaky" | "missed"; note: string }[],
 ): void {
   for (const c of reviewed) applyResult(db, c.name, c.layer, c.result, c.note);
+}
+
+/** How hard quizzes and challenges should be, from the learner's average mastery. */
+export function difficultyRule(db: Db): string {
+  const rows = listProfile(db);
+  if (rows.length < 3) return "Little is known about the learner yet: start gently and build up.";
+  const average = rows.reduce((sum, r) => sum + r.mastery, 0) / rows.length;
+  if (average < 0.4)
+    return "The learner is still building the basics: keep it gentle and concrete.";
+  if (average < 0.7) return "The learner knows the basics: aim for medium difficulty.";
+  return "The learner is doing well: make it challenging, with edge cases.";
 }
 
 export function listProfile(db: Db = getDb()) {

@@ -1,0 +1,28 @@
+{
+  "decisions": [
+    {
+      "decision": "Database",
+      "chosen": { "name": "SQLite with better-sqlite3", "pros": ["One file, no server to run", "Fast and simple for one machine"], "cons": ["One writer at a time", "Harder to share between servers"], "pick_when": "A small app on one server, or learning." },
+      "alternatives": [
+        { "name": "PostgreSQL", "pros": ["Handles many users at once", "Rich features"], "cons": ["A server to install and run"], "pick_when": "Many users or several app servers." },
+        { "name": "MongoDB", "pros": ["Flexible documents"], "cons": ["No joins between users and todos"], "pick_when": "Data has no fixed shape." }
+      ]
+    },
+    {
+      "decision": "Where the client keeps the login token",
+      "chosen": { "name": "localStorage", "pros": ["Simple to read and send"], "cons": ["Any injected script can read it"], "pick_when": "Prototypes where XSS is tightly controlled." },
+      "alternatives": [
+        { "name": "httpOnly cookie", "pros": ["Scripts cannot read it"], "cons": ["Needs CSRF protection"], "pick_when": "Most real apps." },
+        { "name": "In-memory only", "pros": ["Gone when the tab closes"], "cons": ["Log in again on every refresh"], "pick_when": "High-security apps with short sessions." }
+      ]
+    },
+    {
+      "decision": "Data access",
+      "chosen": { "name": "Hand-written SQL", "pros": ["You see every query"], "cons": ["Easy to concatenate input by mistake"], "pick_when": "Small apps and learning SQL." },
+      "alternatives": [
+        { "name": "Query builder (Knex)", "pros": ["Parameters by default"], "cons": ["Another API to learn"], "pick_when": "Medium apps that want safety without an ORM." },
+        { "name": "ORM (Prisma)", "pros": ["Types and migrations"], "cons": ["Hides the SQL"], "pick_when": "Larger apps and teams." }
+      ]
+    }
+  ]
+}

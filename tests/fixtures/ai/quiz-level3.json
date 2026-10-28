@@ -1,0 +1,54 @@
+{
+  "questions": [
+    {
+      "type": "what_does_this_do",
+      "prompt": "What does this route send back?",
+      "code": "router.get(\"/\", (req, res) => {\n  const todos = db.prepare(\"SELECT * FROM todos WHERE user_id = ?\").all(req.userId);\n  res.json(todos);\n});",
+      "file": "server/routes/todos.js",
+      "options": ["Every todo in the database", "Only the logged-in user's todos, as JSON", "The number of todos", "An HTML page of todos"],
+      "correct_answer": "Only the logged-in user's todos, as JSON",
+      "explanation": "The WHERE user_id = ? filter keeps only rows for req.userId, and res.json sends them as JSON.",
+      "concept": "parameterised queries"
+    },
+    {
+      "type": "what_does_this_do",
+      "prompt": "What does db.js do when the server starts?",
+      "code": "const schema = fs.readFileSync(path.join(__dirname, \"schema.sql\"), \"utf8\");\ndb.exec(schema);",
+      "file": "server/db.js",
+      "options": ["Deletes all tables", "Creates the tables if they do not exist yet", "Prints the schema", "Downloads a schema"],
+      "correct_answer": "Creates the tables if they do not exist yet",
+      "explanation": "schema.sql uses CREATE TABLE IF NOT EXISTS, so running it at start-up is safe.",
+      "concept": "database setup"
+    },
+    {
+      "type": "find_the_bug",
+      "prompt": "What is wrong with this POST handler?",
+      "code": "router.post(\"/\", (req, res) => {\n  const { title } = req.body;\n  const result = db.prepare(\"INSERT INTO todos (user_id, title) VALUES (?, ?)\").run(req.userId, title);\n  res.status(201).json({ id: result.lastInsertRowid, title, done: 0 });\n});",
+      "file": "server/routes/todos.js",
+      "options": null,
+      "correct_answer": "It never checks that title exists or has a sensible length, so empty or huge titles are saved.",
+      "explanation": "Validation is missing: return 400 when title is missing or too long.",
+      "concept": "input validation"
+    },
+    {
+      "type": "security",
+      "prompt": "Why is the /search route dangerous?",
+      "code": "db.prepare(`SELECT * FROM todos WHERE user_id = ? AND title LIKE '%${q}%'`)",
+      "file": "server/routes/todos.js",
+      "options": ["It is slow", "q is pasted into the SQL, so an attacker can change the query", "It returns too few results", "LIKE is not supported by SQLite"],
+      "correct_answer": "q is pasted into the SQL, so an attacker can change the query",
+      "explanation": "This is SQL injection. Pass `%${q}%` as a parameter instead.",
+      "concept": "sql injection"
+    },
+    {
+      "type": "how_would_you_change",
+      "prompt": "How would you change the todos routes so each todo can have a due date?",
+      "code": null,
+      "file": null,
+      "options": null,
+      "correct_answer": "Add a due_date column to the todos table, accept dueDate in POST and PATCH (validated as a date), and include it in the SELECT results.",
+      "explanation": "A new field touches the schema, the inputs, validation and the outputs.",
+      "concept": "schema changes"
+    }
+  ]
+}

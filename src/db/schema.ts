@@ -370,3 +370,18 @@ export const settings = sqliteTable("setting", {
   key: text().primaryKey(),
   value: text({ mode: "json" }).$type<unknown>().notNull(),
 });
+
+/** Whole-project reports from the AI that are shown as a page section (e.g. lessons and gaps). */
+export const reports = sqliteTable(
+  "report",
+  {
+    id: id(),
+    projectId: integer()
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    kind: text({ enum: ["gaps"] }).notNull(),
+    data: text({ mode: "json" }).$type<unknown>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("report_project_kind").on(t.projectId, t.kind)],
+);

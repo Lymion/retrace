@@ -16,5 +16,5 @@ export interface WorkspaceProps {
   levels: LevelView[];
   files: WorkspaceFile[];
   depth: "beginner" | "intermediate" | "advanced";
-  initial: { levelId: number | null; fileId: number | null; mode: Mode };
+  initial: { levelId: number | null; fileId: number | null; mode: Mode; line?: number | null };
 }

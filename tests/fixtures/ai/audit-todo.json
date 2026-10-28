@@ -1,0 +1,10 @@
+{
+  "findings": [
+    { "file": "server/routes/todos.js", "line": 16, "severity": "critical", "title": "SQL injection in todo search", "attacker_view": "Anyone logged in can send q = %' OR '1'='1 and read every user's todos, or worse, change the query.", "fix": "Use a placeholder: db.prepare(\"... AND title LIKE ?\").all(req.userId, `%${q}%`)." },
+    { "file": "server/middleware/auth.js", "line": 3, "severity": "high", "title": "Hard-coded fallback JWT secret", "attacker_view": "If JWT_SECRET is not set, anyone who reads the code can sign their own tokens and log in as any user.", "fix": "Refuse to start when JWT_SECRET is missing instead of falling back to a fixed string." },
+    { "file": "server/app.js", "line": 8, "severity": "medium", "title": "CORS open to every site", "attacker_view": "Any website can call the API from a visitor's browser.", "fix": "Set origin to the client's URL only." },
+    { "file": "client/src/pages/Todos.jsx", "line": 52, "severity": "high", "title": "HTML injection in the todo list", "attacker_view": "A todo titled with an <img onerror> tag runs script in the browser.", "fix": "Render {todo.title} as text instead of dangerouslySetInnerHTML." },
+    { "file": "server/routes/users.js", "line": 4, "severity": "low", "title": "A file that does not exist", "attacker_view": "n/a", "fix": "n/a" },
+    { "file": "server/routes/auth.js", "line": 400, "severity": "medium", "title": "No rate limit on login", "attacker_view": "Someone can try thousands of passwords a minute.", "fix": "Add express-rate-limit to /api/auth/login." }
+  ]
+}

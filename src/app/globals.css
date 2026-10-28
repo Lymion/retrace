@@ -212,3 +212,8 @@ body {
   cursor: pointer;
   font-size: 16px;
 }
+
+/* A line the learner jumped to (audit finding, tutor link). */
+.focus-line {
+  background: rgba(227, 179, 65, 0.18);
+}

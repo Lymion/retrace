@@ -40,6 +40,7 @@ export function CodeViewer({
   onSelection,
   readOnly = true,
   onChange,
+  focusLine = null,
 }: {
   path: string;
   language: string;
@@ -50,11 +51,14 @@ export function CodeViewer({
   onSelection?: (selection: Selection | null) => void;
   readOnly?: boolean;
   onChange?: (value: string) => void;
+  /** A line to scroll to and highlight, e.g. from an audit finding or a tutor link. */
+  focusLine?: number | null;
 }) {
   const editorRef = useRef<Editor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const decorations = useRef<ReturnType<Editor["createDecorationsCollection"]> | null>(null);
   const zoneId = useRef<string | null>(null);
+  const focusDecoration = useRef<ReturnType<Editor["createDecorationsCollection"]> | null>(null);
   // Handlers change every render; refs let Monaco's listeners always call the latest one.
   const onOpenLineRef = useRef(onOpenLine);
   const onSelectionRef = useRef(onSelection);
@@ -69,6 +73,7 @@ export function CodeViewer({
     editorRef.current = editor;
     monacoRef.current = monaco;
     decorations.current = editor.createDecorationsCollection();
+    focusDecoration.current = editor.createDecorationsCollection();
 
     editor.onMouseDown((event) => {
       if (event.target.type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) return;
@@ -92,7 +97,25 @@ export function CodeViewer({
       });
     });
     renderDecorations();
+    applyFocus();
   };
+
+  function applyFocus() {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editor || !monaco || !focusLine) return;
+    const line = Math.min(focusLine, editor.getModel()?.getLineCount() ?? focusLine);
+    editor.revealLineInCenter(line);
+    editor.setPosition({ lineNumber: line, column: 1 });
+    focusDecoration.current?.set([
+      {
+        range: new monaco.Range(line, 1, line, 1),
+        options: { isWholeLine: true, className: "focus-line" },
+      },
+    ]);
+  }
+
+  useEffect(applyFocus, [focusLine, content]);
 
   function renderDecorations() {
     const monaco = monacoRef.current;
