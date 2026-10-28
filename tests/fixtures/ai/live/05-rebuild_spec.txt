@@ -1,0 +1,63 @@
+```json
+{
+  "title": "Project setup: git rules, environment variables and the server package",
+  "summary": "Build the foundation files before any server code exists. You write a .gitignore so private and generated files never enter git, a .env.example that documents which settings the server needs (with safe placeholder values), a real .env for your own machine that stays private, and server/package.json that names the server and lists the libraries it will use. Level 0 gave you README.md; this level adds the rules and setup that every later server file (server/index.js, the database code, the auth code) will rely on. No JavaScript logic is written yet.",
+  "files_to_write": [
+    {
+      "path": ".gitignore",
+      "purpose": "Tells git which things to never track: the installed packages folder (node_modules), the private .env file, any SQLite database files (anything ending in .db), and the front-end build output folder (dist). Each entry goes on its own line."
+    },
+    {
+      "path": ".env.example",
+      "purpose": "A safe, committed template listing the three environment variable names the server will need: PORT, JWT_SECRET and DATABASE_FILE. It uses harmless placeholder values (a port number, an obvious 'change me' style secret, a database file name ending in .db). It must never contain a real secret."
+    },
+    {
+      "path": ".env",
+      "purpose": "Your private local copy of the same three variables with values you choose for your own machine, using the same names as .env.example. Use a long random-looking JWT_SECRET that differs from the placeholder. It is never committed because .gitignore excludes it."
+    },
+    {
+      "path": "server/package.json",
+      "purpose": "Describes the server as an npm package: a name, a version, index.js as the main file, a 'start' script that runs index.js with Node, and dependencies bcrypt (5.x), better-sqlite3 (11.x), cors (2.x), dotenv (16.x), express (4.x) and jsonwebtoken (9.x), using caret ranges. Must be valid JSON."
+    }
+  ],
+  "inputs": [
+    "Commands you run yourself: npm install inside the server/ folder, and git status or git check-ignore from the repo root to test your ignore rules.",
+    "Environment variable names the later server code will read: PORT (which port the server listens on), JWT_SECRET (the secret used to sign login tokens), DATABASE_FILE (the SQLite file name).",
+    "Your own choice of values for the private .env file (a port, a secret string, a database file name)."
+  ],
+  "outputs": [
+    "A .gitignore that makes git skip node_modules, .env, any *.db file and dist.",
+    "A committed .env.example showing PORT, JWT_SECRET and DATABASE_FILE with placeholder values only.",
+    "A private .env with the same three names and your own values, which does not show up in git status as a new file to add.",
+    "server/package.json that is valid JSON, so running npm install in server/ finishes without errors and creates a node_modules folder (and a lock file) inside server/.",
+    "Running npm start in server/ is allowed to fail at this stage because index.js does not exist yet; the script only needs to be declared."
+  ],
+  "acceptance_checks": [
+    {
+      "id": "A1",
+      "description": "npm install succeeds in server/ and the package.json declares the right name, entry file, start script and the six dependencies.",
+      "how_to_verify": "Open server/package.json and confirm it has a name, a version, main pointing to index.js, a start script that runs index.js with node, and exactly the six dependencies bcrypt, better-sqlite3, cors, dotenv, express and jsonwebtoken. Then run 'npm install' inside server/ and check that it ends without errors and that a node_modules folder appears."
+    },
+    {
+      "id": "A2",
+      "description": "Git ignores .env, node_modules, *.db files and dist, but does not ignore .env.example.",
+      "how_to_verify": "Run 'git check-ignore -v .env server/node_modules todos.db dist' from the repo root and confirm all four are reported as ignored. Run 'git check-ignore .env.example' and confirm it prints nothing (meaning it is NOT ignored). Also run 'git status' and confirm .env and node_modules are not listed as untracked files."
+    },
+    {
+      "id": "A3",
+      "description": "The .env.example and .env files list the same three variable names, and .env.example holds only placeholder values, no real secret.",
+      "how_to_verify": "Read both files side by side and confirm each has PORT, JWT_SECRET and DATABASE_FILE (one per line, NAME=value format, no spaces around =). Check that the JWT_SECRET in .env.example is an obvious placeholder, and that the JWT_SECRET in .env is a different value that you chose."
+    }
+  ],
+  "concepts": [
+    "gitignore",
+    "environment variables",
+    "dotenv files",
+    "secrets out of source control",
+    "package.json",
+    "npm dependencies and semver ranges",
+    "npm scripts",
+    "template config file"
+  ]
+}
+```

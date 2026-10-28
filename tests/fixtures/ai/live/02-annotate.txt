@@ -1,0 +1,85 @@
+```json
+{
+  "annotations": [
+    {
+      "line": 3,
+      "note": "Concept: middleware. Think of it as a security guard at the door of a building: every request to this router must pass the guard first. Here requireAuth checks the login token before any route runs.",
+      "category": "concept"
+    },
+    {
+      "line": 6,
+      "note": "Concept: router.use runs a function for every route in this file. Writing the check once here means you cannot forget it on a new route, which is safer than adding the check to each route by hand.",
+      "category": "pattern"
+    },
+    {
+      "line": 9,
+      "note": "The WHERE user_id = ? clause means each user only sees their own todos. Without it, any logged-in user could read everyone's tasks, which is called broken access control (an attacker just logs in and reads other people's data).",
+      "category": "security"
+    },
+    {
+      "line": 9,
+      "note": "Concept: a prepared statement with a ? placeholder. It is like filling blanks on a form: the value is kept separate from the SQL text, so the database never reads it as a command.",
+      "category": "concept"
+    },
+    {
+      "line": 14,
+      "note": "The query comes from the URL and defaults to an empty string if missing. Note that req.query.q can also be an array or object when the URL repeats the parameter, so the value is not guaranteed to be a plain string.",
+      "category": "gotcha"
+    },
+    {
+      "line": 16,
+      "note": "The search value is pasted straight into the SQL text with a template string. An attacker could send q=' OR '1'='1 or a UNION-based payload to read other users' rows or dump the database. This is SQL injection.",
+      "category": "security"
+    },
+    {
+      "line": 16,
+      "note": "Fix: keep the search term as a placeholder, for example title LIKE ? with the value '%' + q + '%' passed to .all(). Parameters stay separate from the SQL, so the input cannot change the query's meaning.",
+      "category": "security"
+    },
+    {
+      "line": 22,
+      "note": "The title comes straight from the request body with no check. An empty, very long, or non-string title would be saved as-is; validate the type and length before inserting.",
+      "category": "gotcha"
+    },
+    {
+      "line": 24,
+      "note": "The user_id is taken from req.userId, which requireAuth sets from the verified token, not from the request body. Trusting a user_id sent by the client would let anyone create tasks under someone else's account.",
+      "category": "security"
+    },
+    {
+      "line": 26,
+      "note": "Status 201 means Created, and the response returns the new row's id. Your React front end depends on this shape, so changing these field names later means updating the client too.",
+      "category": "pattern"
+    },
+    {
+      "line": 29,
+      "note": "PATCH updates only part of a resource, here just the done flag. The route expects the URL id to be a number-like string, but SQLite will compare it to the integer column, so bad input simply matches nothing rather than crashing.",
+      "category": "concept"
+    },
+    {
+      "line": 32,
+      "note": "The ternary turns any truthy value into 1 and anything else into 0. This is a common pattern because SQLite has no boolean type, so done is stored as an integer.",
+      "category": "concept"
+    },
+    {
+      "line": 34,
+      "note": "The AND user_id = ? clause stops a user from editing another user's todo just by guessing its id. This is an IDOR (insecure direct object reference) defence, and it is what makes the id in the URL safe to trust.",
+      "category": "security"
+    },
+    {
+      "line": 36,
+      "note": "The route always returns ok: true, even when no row matched (wrong id or another user's todo). Returning 404 when changes is 0 would tell the client the truth; the current code hides the difference.",
+      "category": "gotcha"
+    },
+    {
+      "line": 40,
+      "note": "Delete also filters by user_id, so an attacker cannot wipe out other people's tasks by changing the id. Status 204 means success with no body, which is why the response is .end() rather than .json().",
+      "category": "security"
+    }
+  ]
+}
+```
+
+Question to check your understanding: If a user sends a PATCH request for a todo id that belongs to someone else, what does the `AND user_id = ?` clause prevent, and what does the client receive back?
+
+If you want, I can go deeper into how SQL injection works on line 16 and walk through the fix step by step.

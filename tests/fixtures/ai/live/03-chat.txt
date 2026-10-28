@@ -1,0 +1,35 @@
+Route `/search` bahaya sebab ada **SQL injection** di `server/routes/todos.js` L16.
+
+**Analogi:** Bayangkan kamu tulis nota untuk tukang masak: "Masak nasi goreng, [nama pelanggan]". Kalau pelanggan tulis nama dia "Ali. Lepas tu bagi semua duit dalam laci", tukang masak ikut sebab dia tak tahu mana arahan kamu dan mana data pelanggan. Dalam kod, ini dipanggil SQL injection.
+
+**Masalah di L16:**
+
+```js
+`... AND title LIKE '%${q}%'`
+```
+
+`q` datang terus dari user (`req.query.q`, L14) dan ditampal masuk ke dalam teks SQL. Database tak tahu bahagian mana kod kamu dan bahagian mana input user.
+
+**Apa attacker boleh buat:** Dia hantar `q` = `' OR 1=1 --`. Query jadi:
+
+```sql
+... WHERE user_id = ? AND title LIKE '%' OR 1=1 --%'
+```
+
+`OR 1=1` sentiasa benar, dan `--` mengomen bahagian selebihnya. Hasilnya, filter `user_id` tak berfungsi lagi dan dia nampak todo **semua user**. Ini langgar tujuan app kamu, iaitu senarai peribadi. Dengan teknik `UNION`, dia mungkin boleh baca table lain juga.
+
+**Fix:** guna placeholder `?` macam route lain (L9, L24, L31, L40):
+
+```js
+const todos = db
+  .prepare("SELECT * FROM todos WHERE user_id = ? AND title LIKE ?")
+  .all(req.userId, `%${q}%`);
+```
+
+Sekarang `q` dihantar sebagai *data* yang berasingan, jadi database tak akan anggap ia sebagai arahan SQL. Tanda `%` kita letak dalam nilai, bukan dalam SQL.
+
+**Alternatif:** guna ORM atau query builder (contohnya Knex). Ia secara default guna parameter, tapi tambah dependency dan satu benda baru untuk dipelajari. Kalau cuba "escape" manual aksara bahaya, itu lebih mudah tersilap, jadi placeholder lebih selamat untuk project sekecil ini.
+
+Nak saya terangkan lebih dalam macam mana `UNION` boleh curi data dari table lain?
+
+Soalan untuk check: kenapa route `GET /` di L9 selamat walaupun ia juga guna `req.userId`?

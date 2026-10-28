@@ -1,0 +1,148 @@
+```json
+{
+  "summary": "This is a small to-do app where each person signs up, logs in and keeps their own private list of tasks. It is for individual users who want a simple personal list, and sharing lists, due dates and email reset are out of scope. It is built with an Express server that stores data in SQLite, hashes passwords with bcrypt and issues JWT login tokens, plus a React (Vite) front end that talks to the server with fetch.",
+  "levels": [
+    {
+      "level": 0,
+      "name": "Idea and scope",
+      "goal": "Write down what the app is (a to-do list with accounts) and what it is not (sharing, due dates, email reset), so the later levels stay small.",
+      "files": ["README.md"],
+      "checkpoint": "Explain the app in 3 sentences: who uses it, what they can do, and what is out of scope (README.md line 15).",
+      "why_this_order": "Git commit #0 contains only README.md and .gitignore, so the idea and scope were written before any code.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 1,
+      "name": "Project setup",
+      "goal": "Create the repo rules and the server's package setup, and decide which settings live in environment variables instead of code. This keeps secrets out of git from the start.",
+      "files": [".gitignore", ".env.example", ".env", "server/package.json"],
+      "checkpoint": "Run npm install in server/ and confirm it succeeds. Confirm .env is ignored by git and .env.example shows which variables are needed.",
+      "why_this_order": "Commit #0 adds .gitignore and commit #1 adds .env.example and server/package.json, before any server code. .env was never committed (it is private), so it is placed here beside .env.example, which describes it.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 2,
+      "name": "Data design and database connection",
+      "goal": "Define the tables in server/schema.sql and open the SQLite connection in server/db.js so the schema is applied. Everything else reads and writes through this layer.",
+      "files": ["server/schema.sql", "server/db.js"],
+      "checkpoint": "Draw the tables and their relationships (users and todos) on paper, then run server/db.js and confirm the database file is created with those tables.",
+      "why_this_order": "Commit #2 adds schema.sql and db.js together, and db.js imports schema.sql. The schema must exist before the routes that query it (commit #3).",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 3,
+      "name": "Backend core",
+      "goal": "Create the Express app, the entry point that starts the server on port 4000, and the todos routes with basic create, read, update and delete.",
+      "files": ["server/app.js", "server/index.js", "server/routes/todos.js"],
+      "checkpoint": "Start the server with npm start and make a request to a todos endpoint that returns data (a protected route comes in Level 4).",
+      "why_this_order": "Commit #3 adds app.js, index.js and todos.js right after the database in commit #2, and todos.js imports db.js. One oddity: todos.js now imports server/middleware/auth.js, which first appears in commit #4, so that import was most likely added in commit #4 when auth arrived.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 4,
+      "name": "Auth and sessions",
+      "goal": "Add signup and login with bcrypt password hashing and JWT tokens, and a middleware that rejects requests without a valid token. This makes each user's list private.",
+      "files": ["server/routes/auth.js", "server/middleware/auth.js"],
+      "checkpoint": "Call a todos endpoint without a token and see it rejected, then log in, use the token and see it accepted.",
+      "why_this_order": "Commit #4 adds both auth files after the todos routes in #3. routes/auth.js imports db.js (Level 2) and middleware/auth.js, and todos.js uses the middleware to protect itself.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 5,
+      "name": "Frontend skeleton",
+      "goal": "Set up the Vite and React project and build the Login and Todos pages with routing between them in App.jsx. This gives the user screens to click through.",
+      "files": [
+        "client/package.json",
+        "client/vite.config.js",
+        "client/index.html",
+        "client/src/main.jsx",
+        "client/src/App.jsx",
+        "client/src/pages/Login.jsx",
+        "client/src/pages/Todos.jsx"
+      ],
+      "checkpoint": "Run npm install and npm run dev in client/ and click between the Login and Todos screens at http://localhost:5173.",
+      "why_this_order": "Commit #5 adds the whole client at once, after the backend was finished in #4. The client's package.json and vite.config.js moved here from Level 1 because git shows they arrived with the front end, not with the server setup. The import chain index.html -> main.jsx -> App.jsx -> pages also shows the build order. The pages import api.js, which only arrives in #6, so they were probably static first and wired up afterwards.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 6,
+      "name": "Connect the two",
+      "goal": "Add client/src/api.js, the one place where the React pages call the Express server with fetch. Login.jsx and Todos.jsx use it to show real data.",
+      "files": ["client/src/api.js"],
+      "checkpoint": "Log in through the browser and see your own todos from the server on screen.",
+      "why_this_order": "api.js is the last commit (#6), after both the server (#3, #4) and the pages (#5) existed. Login.jsx and Todos.jsx both import it.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 7,
+      "name": "Feature logic",
+      "goal": "No separate feature phase appears in the history. The todo features were built inside Levels 3 and 6, so there is nothing extra to add here yet.",
+      "files": [],
+      "checkpoint": "Use the app end to end: sign up, log in, add, change and delete todos, then log out. To make this a real level, add a feature from the out-of-scope list, such as due dates.",
+      "why_this_order": "The git history ends at commit #6 with no commits for new features, so this level follows the template only.",
+      "evidence": "template",
+      "skipped": true
+    },
+    {
+      "level": 8,
+      "name": "Validation and errors",
+      "goal": "Not built yet. This level would add checks on input (empty titles, bad emails, weak passwords) and clear error handling on both server and client.",
+      "files": [],
+      "checkpoint": "You would need to add input validation to the routes and error messages to the pages, so bad input is rejected without crashing the app.",
+      "why_this_order": "No commit in the history is about validation, so this level follows the template: it comes after the app works end to end.",
+      "evidence": "template",
+      "skipped": true
+    },
+    {
+      "level": 9,
+      "name": "Testing",
+      "goal": "Not built yet. There are no test files or test dependencies, so changes are checked by hand only.",
+      "files": [],
+      "checkpoint": "You would need to add a test runner and tests for the auth and todos routes, so you can change code without fear.",
+      "why_this_order": "The dependency list has no test tools and no test files exist, so this level follows the template.",
+      "evidence": "template",
+      "skipped": true
+    },
+    {
+      "level": 10,
+      "name": "Security hardening",
+      "goal": "Not built yet beyond the basics from Level 4. The project has cors and dotenv installed, but no rate limiting, tight CORS rules or other hardening has its own commit.",
+      "files": [],
+      "checkpoint": "You would need to add rate limits on login, restrict CORS to your client's address, check secrets are only in .env, and review for injection and XSS, then pass your own audit.",
+      "why_this_order": "No commit in the history is about hardening, so this level follows the template: it comes after the features and validation exist.",
+      "evidence": "template",
+      "skipped": true
+    },
+    {
+      "level": 11,
+      "name": "Polish",
+      "goal": "Not built yet. There is no work on performance, accessibility or responsive design in the history.",
+      "files": [],
+      "checkpoint": "You would need to improve accessibility and mobile layout so that a stranger can use the app without help.",
+      "why_this_order": "Nothing in the git history covers polish, so this level follows the template.",
+      "evidence": "template",
+      "skipped": true
+    },
+    {
+      "level": 12,
+      "name": "Ship and maintain",
+      "goal": "Not built yet. There is no deployment config, CI/CD, logging or backup setup, and the README only explains how to run it locally.",
+      "files": [],
+      "checkpoint": "You would need to deploy the server and client, set production environment variables, and add logging and database backups so it runs in production.",
+      "why_this_order": "The project has no deployment files and the README only covers running locally, so this level follows the template: shipping comes last.",
+      "evidence": "template",
+      "skipped": true
+    }
+  ],
+  "layers": {
+    "server/routes/auth.js": "backend"
+  }
+}
+```

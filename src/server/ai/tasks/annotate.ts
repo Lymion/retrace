@@ -27,18 +27,44 @@ export function listAnnotations(fileId: number, depth: Depth, db: Db = getDb()) 
 export type AnnotationRow = ReturnType<typeof listAnnotations>[number];
 
 /** Keeps only notes that point at real lines, one note per line, at most 15. */
+/** When two notes share a line, the merged note takes the more urgent category. */
+const CATEGORY_URGENCY: AnnotateOutput["annotations"][number]["category"][] = [
+  "security",
+  "gotcha",
+  "concept",
+  "pattern",
+];
+
+/**
+ * Keeps only notes on real lines, at most 15. The viewer shows one note per
+ * line, so notes the model wrote for the same line (often "the problem" then
+ * "the fix") are merged instead of dropped.
+ */
 export function cleanAnnotations(output: AnnotateOutput, lineCount: number) {
-  const seen = new Set<number>();
-  return output.annotations
-    .filter((a) => a.line <= lineCount && !seen.has(a.line) && seen.add(a.line))
-    .slice(0, MAX_NOTES)
-    .map((a) => ({
-      startLine: a.line,
-      endLine: Math.min(Math.max(a.end_line ?? a.line, a.line), lineCount),
-      note: a.note,
-      category: a.category,
-    }))
-    .sort((a, b) => a.startLine - b.startLine);
+  const byLine = new Map<
+    number,
+    {
+      startLine: number;
+      endLine: number;
+      note: string;
+      category: (typeof CATEGORY_URGENCY)[number];
+    }
+  >();
+  for (const a of output.annotations) {
+    if (a.line > lineCount) continue;
+    const endLine = Math.min(Math.max(a.end_line ?? a.line, a.line), lineCount);
+    const existing = byLine.get(a.line);
+    if (!existing) {
+      byLine.set(a.line, { startLine: a.line, endLine, note: a.note, category: a.category });
+      continue;
+    }
+    existing.note = `${existing.note} ${a.note}`;
+    existing.endLine = Math.max(existing.endLine, endLine);
+    if (CATEGORY_URGENCY.indexOf(a.category) < CATEGORY_URGENCY.indexOf(existing.category)) {
+      existing.category = a.category;
+    }
+  }
+  return [...byLine.values()].sort((a, b) => a.startLine - b.startLine).slice(0, MAX_NOTES);
 }
 
 /** How many notes a file deserves: a 6-line config file does not need 10. */

@@ -64,7 +64,7 @@ export const RebuildSpecSchema = z.object({
   title: text(120),
   summary: text(1200),
   files_to_write: z
-    .array(z.object({ path: filePath, purpose: text(400) }))
+    .array(z.object({ path: filePath, purpose: text(800) }))
     .min(1)
     .max(30),
   inputs: z.array(text(300)).max(12),
@@ -239,7 +239,7 @@ export const RemixSchema = z.object({
   }),
   patterns_reused: z.array(text(200)).min(1).max(8),
   files_needed: z
-    .array(z.object({ path: filePath, purpose: text(400) }))
+    .array(z.object({ path: filePath, purpose: text(800) }))
     .min(1)
     .max(20),
   skeleton: z
