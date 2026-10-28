@@ -36,7 +36,8 @@ export interface ProviderStatus {
 export interface AIProvider {
   readonly id: ProviderId;
   readonly label: string;
-  status(): Promise<ProviderStatus>;
+  /** `fresh` skips any cached result (the "Check again" button). */
+  status(fresh?: boolean): Promise<ProviderStatus>;
   complete(request: AIRequest, signal?: AbortSignal): Promise<string>;
   stream(request: AIRequest, signal?: AbortSignal): AsyncIterable<string>;
 }

@@ -88,7 +88,14 @@ function friendlyError(error: unknown): AIError {
 
 export function createApiKeyProvider(deps: ApiKeyDeps): AIProvider {
   const makeClient =
-    deps.makeClient ?? ((apiKey: string) => new Anthropic({ apiKey, maxRetries: 2 }));
+    deps.makeClient ??
+    ((apiKey: string) =>
+      new Anthropic({
+        apiKey,
+        maxRetries: 2,
+        // Pinned, so an inherited ANTHROPIC_BASE_URL can never send the key elsewhere.
+        baseURL: "https://api.anthropic.com",
+      }));
 
   const client = (): MessagesClient => {
     const key = deps.getKey();

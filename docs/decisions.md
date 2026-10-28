@@ -77,3 +77,24 @@ Big decisions (stack changes, new services, cut features) are asked first.
 - **The output schemas for every task live in `src/shared/contracts.ts` from this phase on**, so
   Tier 2 features add prompts and screens, not new data shapes.
 - **Rate limit**: one in-memory token bucket for all AI routes (`AI_RATE_LIMIT_PER_MIN`, default 20).
+
+### Phase 5: provider switch
+
+- **The claude-login child process gets an allowlisted environment** (OS basics, `CLAUDE_CONFIG_DIR`
+  and proxy settings only) instead of a copy of `process.env` with the key removed. When Retrace
+  runs inside another Claude tool, the server inherits dozens of `CLAUDE_CODE_*`/`ANTHROPIC_*`
+  variables, including tokens and a base URL; an allowlist guarantees none of them reach the child.
+- **Lockdown is belt and braces**: `tools: []`, every built-in tool name in `disallowedTools`,
+  `permissionMode: "dontAsk"`, a `canUseTool` that always denies, `maxTurns: 1`, no setting
+  sources, skills, plugins or MCP servers, `persistSession: false`, and a fresh empty temp folder
+  as `cwd` for every call.
+- **Login check**: Claude Code's `accountInfo()` reports the saved account without proving the
+  session still works (an expired session still looks signed in). So a failed call marks the
+  provider not ready, and "Check again" proves the login with a one-word reply on the fast model.
+  The automatic check never spends plan usage.
+- **The api-key provider pins `baseURL` to `https://api.anthropic.com`**, so an inherited
+  `ANTHROPIC_BASE_URL` can never send the key somewhere else.
+- **Switching to a provider that is not ready is refused server-side** (409), not just disabled
+  in the UI.
+- **Multi-turn context for claude-login** is sent as one prompt with `<learner>`/`<tutor>` turns,
+  since each call is a fresh single-turn session.

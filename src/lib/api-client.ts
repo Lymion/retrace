@@ -6,6 +6,8 @@ export class ApiError extends Error {
     message: string,
     readonly status: number,
     readonly code?: string,
+    /** For AI errors: which provider failed, so the UI can offer the other one. */
+    readonly provider?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -28,11 +30,14 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
     // fall through: a non-JSON error page
   }
   if (!response.ok) {
-    const error = (body as { error?: { message?: string; code?: string } } | null)?.error;
+    const error = (
+      body as { error?: { message?: string; code?: string; provider?: string } } | null
+    )?.error;
     throw new ApiError(
       error?.message ?? `Request failed (${response.status}).`,
       response.status,
       error?.code,
+      error?.provider,
     );
   }
   return body as T;
