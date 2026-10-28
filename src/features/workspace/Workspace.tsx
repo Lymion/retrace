@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CodeViewer, type Selection } from "@/components/CodeViewer";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { NotesPanel } from "@/features/annotations/NotesPanel";
 import { useAnnotations } from "@/features/annotations/useAnnotations";
+import { TutorPanel } from "@/features/tutor/TutorPanel";
+import { usePanelPlacement } from "@/features/tutor/usePanelPlacement";
 import { apiFetch } from "@/lib/api-client";
 import { useFetch } from "@/lib/use-fetch";
 import { LevelSidebar } from "./LevelSidebar";
@@ -38,6 +41,7 @@ export function Workspace({
   depth: initialDepth,
   initial,
 }: WorkspaceProps) {
+  const router = useRouter();
   const firstFileOf = (id: number | null) => files.find((f) => f.levelId === id)?.id ?? null;
   const fileLevel = files.find((f) => f.id === initial.fileId)?.levelId ?? null;
   const defaultLevel =
@@ -53,10 +57,13 @@ export function Workspace({
   const [showAll, setShowAll] = useState(levels.length === 0);
   const [depth, setDepth] = useState(initialDepth);
   const [openLine, setOpenLine] = useState<number | null>(null);
-  const [, setSelection] = useState<Selection | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [marking, setMarking] = useState(false);
+  const panel = usePanelPlacement();
 
   const level = levels.find((l) => l.id === levelId) ?? null;
   const fileMeta = useMemo(() => files.find((f) => f.id === fileId) ?? null, [files, fileId]);
+  const filePaths = useMemo(() => new Set(files.map((f) => f.path)), [files]);
   const { data, error, loading, reload } = useFetch<{ file: FileContent }>(
     fileId ? `/api/projects/${project.id}/files/${fileId}` : null,
   );
@@ -75,13 +82,23 @@ export function Workspace({
     setLevelId(id);
     setFileId(firstFileOf(id));
     setOpenLine(null);
+    setSelection(null);
   }
 
   function chooseFile(id: number) {
     setFileId(id);
     setOpenLine(null);
+    setSelection(null);
     const owner = files.find((f) => f.id === id)?.levelId;
     if (owner && owner !== levelId && !showAll) setLevelId(owner);
+  }
+
+  /** A file path the tutor mentioned was clicked. */
+  function openFileByPath(path: string, line: number | null) {
+    const target = files.find((f) => f.path === path);
+    if (!target) return;
+    chooseFile(target.id);
+    if (line) setOpenLine(line);
   }
 
   function changeDepth(value: typeof depth) {
@@ -93,6 +110,41 @@ export function Workspace({
       body: JSON.stringify({ depth: value }),
     }).catch(() => undefined);
   }
+
+  async function markCheckpointPassed() {
+    if (!level) return;
+    setMarking(true);
+    try {
+      await apiFetch(`/api/projects/${project.id}/levels/${level.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "done" }),
+      });
+      router.refresh();
+    } finally {
+      setMarking(false);
+    }
+  }
+
+  const tutorDocked = !panel.placement.floating;
+  // Whole class names, so Tailwind can find them when it scans the source.
+  const gridColumns = !tutorDocked
+    ? "lg:grid-cols-[260px_minmax(0,1fr)]"
+    : panel.placement.collapsed
+      ? "lg:grid-cols-[260px_minmax(0,1fr)_40px]"
+      : "lg:grid-cols-[260px_minmax(0,1fr)_400px]";
+
+  const tutor = (
+    <TutorPanel
+      projectId={project.id}
+      level={level}
+      file={fileMeta ? { id: fileMeta.id, path: fileMeta.path } : null}
+      selection={selection}
+      filePaths={filePaths}
+      onOpenFile={openFileByPath}
+      panel={panel}
+    />
+  );
 
   return (
     <div className="flex h-[calc(100dvh-3rem)] min-h-0 flex-col overflow-hidden">
@@ -110,6 +162,17 @@ export function Workspace({
             </>
           )}
         </nav>
+        {level && !level.skipped && (
+          <button
+            type="button"
+            className="btn btn-ghost text-xs"
+            onClick={markCheckpointPassed}
+            disabled={marking || level.status === "done"}
+            title={`Checkpoint: ${level.checkpoint}`}
+          >
+            {level.status === "done" ? "✓ Level done" : "I passed the checkpoint"}
+          </button>
+        )}
         <div
           role="tablist"
           aria-label="Mode"
@@ -159,7 +222,9 @@ export function Workspace({
         </p>
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_400px] lg:grid-rows-[minmax(0,1fr)]">
+      <div
+        className={`grid min-h-0 flex-1 grid-cols-1 lg:grid-rows-[minmax(0,1fr)] ${gridColumns}`}
+      >
         <aside aria-label="Levels and files" className="min-h-0 border-r border-border bg-surface">
           <LevelSidebar
             levels={levels}
@@ -177,7 +242,11 @@ export function Workspace({
         <section aria-label="Code" className="flex min-h-0 min-w-0 flex-col">
           {!fileId && (
             <div className="p-6">
-              <EmptyState title="No file open">Pick a file on the left.</EmptyState>
+              <EmptyState title="No file open">
+                {level?.skipped
+                  ? "This level has no files in the project. Ask the tutor to teach it as a missing level."
+                  : "Pick a file on the left."}
+              </EmptyState>
             </div>
           )}
           {fileId && loading && <LoadingState label="Opening file…" />}
@@ -218,13 +287,13 @@ export function Workspace({
           )}
         </section>
 
-        <aside
-          aria-label="Tutor"
-          className="hidden min-h-0 border-l border-border bg-surface lg:block"
-        >
-          <div className="p-4 text-sm text-muted">The tutor chat appears here.</div>
-        </aside>
+        {tutorDocked && (
+          <aside aria-label="Tutor panel" className="min-h-0 border-l border-border bg-surface">
+            {tutor}
+          </aside>
+        )}
       </div>
+      {!tutorDocked && tutor}
     </div>
   );
 }
