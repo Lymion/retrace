@@ -24,7 +24,9 @@ export function openDb(file: string): Db {
 }
 
 export function dataDir(): string {
-  return path.resolve(process.cwd(), getEnv().RETRACE_DATA_DIR);
+  // The ignore comment stops the bundler tracing the whole project because of a
+  // runtime path: the data folder holds the learner's database, not code.
+  return path.resolve(/*turbopackIgnore: true*/ process.cwd(), getEnv().RETRACE_DATA_DIR);
 }
 
 // Next.js can load this module more than once in dev (one copy per route

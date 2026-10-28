@@ -21,6 +21,8 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "samples:zip": "tsx scripts/make-sample-zips.ts",
     "live-check": "tsx scripts/live-check.ts",
+    "shortcut": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1",
+    "icon": "node scripts/make-icon.mjs",
     "postinstall": "node scripts/copy-monaco.mjs"
   },
   "dependencies": {

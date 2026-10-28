@@ -152,3 +152,16 @@ Big decisions (stack changes, new services, cut features) are asked first.
   challenging wording in the prompt.
 - **Audit mode and Quiz mode keep the tutor**; Rebuild mode does not (see above). Links from audit
   findings and tutor replies open the file in Tour mode at that line (`?path=` and `?line=`).
+
+### One-click start (Windows)
+
+- **The desktop shortcut runs `scripts/start-retrace.ps1`** in production mode (`next start`), which
+  is much faster than dev mode. It installs dependencies on the first run and rebuilds only when a
+  file under `src/` or a config file is newer than the last build; prompts and migrations are read
+  at runtime, so editing them needs no rebuild.
+- **`-ExecutionPolicy Bypass` is passed on the shortcut for that one script**, so the learner's
+  PowerShell execution policy is never changed.
+- **Closing the window stops Retrace.** The server shares the window's console, so nothing keeps
+  running in the background after the learner is done.
+- **The icon is drawn by a script** (`scripts/make-icon.mjs`, plain Node and zlib), so it can be
+  changed without an image editor or an extra dependency.

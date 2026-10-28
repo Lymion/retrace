@@ -61,11 +61,31 @@ folder and no API key in its environment, so uploaded code can never make it rea
 
 ## 3. Run it
 
+### One click (Windows)
+
+Create a **Retrace** shortcut on your desktop once:
+
 ```bash
-npm run dev
+npm run shortcut
 ```
 
-Open **http://127.0.0.1:3000**. The database (`data/retrace.db`) is created on first start.
+Double-click it whenever you want to study. It opens a small window, builds Retrace if the code
+changed since last time (a minute or two), starts it, and opens **http://127.0.0.1:3000** in your
+browser. Keep that window open while you use Retrace; close it to stop. Double-clicking again while
+Retrace is running just opens the browser. Run `npm run shortcut` again if you move the folder.
+
+### From a terminal
+
+```bash
+npm run build
+```
+
+```bash
+npm start
+```
+
+Or `npm run dev` while changing Retrace's own code (slower, reloads on save). Either way, open
+**http://127.0.0.1:3000**. The database (`data/retrace.db`) is created on first start.
 
 ## 4. Your first tour (about 10 minutes)
 
