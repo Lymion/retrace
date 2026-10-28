@@ -17,6 +17,7 @@ export function LevelSidebar({
   onShowAll,
   onLevel,
   onFile,
+  showFiles = true,
 }: {
   levels: LevelView[];
   files: WorkspaceFile[];
@@ -28,6 +29,8 @@ export function LevelSidebar({
   onShowAll: (value: boolean) => void;
   onLevel: (id: number) => void;
   onFile: (id: number) => void;
+  /** Rebuild mode shows only the levels; the files of this level stay hidden. */
+  showFiles?: boolean;
 }) {
   const current = levels.find((l) => l.id === levelId);
   const visible: TreeFile[] = (
@@ -83,37 +86,41 @@ export function LevelSidebar({
           </ol>
         </nav>
       )}
-      <div className="flex items-center gap-2 px-3 pt-2 text-xs text-muted">
-        <span className="mr-auto">
-          {showAll || !current ? "All files" : `Files in level ${current.number}`}
-        </span>
-        {current && (
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={showAll}
-              onChange={(e) => onShowAll(e.target.checked)}
-            />
-            all
-          </label>
-        )}
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto p-2">
-        {visible.length === 0 ? (
-          <p className="px-2 text-sm text-muted">
-            {current?.skipped
-              ? "This project skipped this level, so it has no files. The tutor can still teach it."
-              : "No files here."}
-          </p>
-        ) : (
-          <FileTree
-            files={visible}
-            selectedId={fileId}
-            onSelect={(f) => onFile(f.id)}
-            label="Level files"
-          />
-        )}
-      </div>
+      {showFiles && (
+        <>
+          <div className="flex items-center gap-2 px-3 pt-2 text-xs text-muted">
+            <span className="mr-auto">
+              {showAll || !current ? "All files" : `Files in level ${current.number}`}
+            </span>
+            {current && (
+              <label className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={showAll}
+                  onChange={(e) => onShowAll(e.target.checked)}
+                />
+                all
+              </label>
+            )}
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto p-2">
+            {visible.length === 0 ? (
+              <p className="px-2 text-sm text-muted">
+                {current?.skipped
+                  ? "This project skipped this level, so it has no files. The tutor can still teach it."
+                  : "No files here."}
+              </p>
+            ) : (
+              <FileTree
+                files={visible}
+                selectedId={fileId}
+                onSelect={(f) => onFile(f.id)}
+                label="Level files"
+              />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

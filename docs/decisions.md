@@ -98,3 +98,25 @@ Big decisions (stack changes, new services, cut features) are asked first.
   in the UI.
 - **Multi-turn context for claude-login** is sent as one prompt with `<learner>`/`<tutor>` turns,
   since each call is a fresh single-turn session.
+
+### Phases 6 to 8: workspace, tutor, rebuild
+
+- **Notes are cached per file and depth** and only written when a file is first opened at that
+  depth, so browsing costs one AI call per file at most.
+- **Monaco view zones for inline notes are built with `textContent`**, never HTML, since notes are
+  model output.
+- **Streaming**: the server waits for the first chunk before answering, so most failures come back
+  as normal JSON errors with the provider id (for the one-click switch). A failure mid-stream ends
+  the text with a marker the client turns into an error.
+- **Chat turns are saved together once the reply completes**, so a failed request and its retry
+  never leave a question without an answer in the history.
+- **The tutor panel's position is kept in `localStorage`** (a per-browser convenience; the app works
+  the same without it). The panel can also be moved with the arrow keys.
+- **The tutor sits out Rebuild mode.** It can see the original code, so it could give the answer
+  away. The original of the current level opens (read-only) only after a review.
+- **Specs never quote the original**: any original line of 30+ characters found in the spec's text
+  sends it back for one retry with the reason, then fails. Shorter lines (`res.json(todos);`) are
+  too generic to count as copying.
+- **Review citations are kept only when they point at a real original file**, so the learner never
+  clicks through to a file that does not exist.
+- **Learning events store summaries** (level, pass counts, concepts), never code.

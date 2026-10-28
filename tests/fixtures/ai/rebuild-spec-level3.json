@@ -1,0 +1,27 @@
+{
+  "title": "Backend core: database, todo routes and the server",
+  "summary": "Build the server side that stores and serves todos. It uses the users and todos tables from server/schema.sql (Level 2). The auth middleware arrives in Level 4, so for now read the user id from a placeholder you replace later.",
+  "files_to_write": [
+    { "path": "server/db.js", "purpose": "Open one SQLite connection to the file named in DATABASE_FILE (default todos.db), create the tables from schema.sql, and export the connection." },
+    { "path": "server/routes/todos.js", "purpose": "An Express router for /api/todos: list, search by title, create, update the done flag, and delete, always scoped to the current user." },
+    { "path": "server/app.js", "purpose": "Create the Express app, parse JSON bodies, add GET /api/health, mount the todo router at /api/todos and export the app." },
+    { "path": "server/index.js", "purpose": "Load .env, start the app on PORT (default 4000) and log the address." }
+  ],
+  "inputs": [
+    "GET /api/todos and GET /api/todos/search?q=text",
+    "POST /api/todos with a JSON body { title }",
+    "PATCH /api/todos/:id with { done } and DELETE /api/todos/:id",
+    "Environment variables PORT and DATABASE_FILE"
+  ],
+  "outputs": [
+    "GET /api/health answers 200 with { ok: true }",
+    "Todo routes answer JSON arrays or objects; POST answers 201 with the new id; DELETE answers 204",
+    "Rows in the todos table belong to the user who created them"
+  ],
+  "acceptance_checks": [
+    { "id": "A1", "description": "GET /api/health returns 200 and { \"ok\": true }.", "how_to_verify": "Start the server and open http://localhost:4000/api/health." },
+    { "id": "A2", "description": "Every query that uses outside input passes it as a parameter, never by building the SQL string.", "how_to_verify": "Read each db.prepare call: values must go through placeholders." },
+    { "id": "A3", "description": "A user can only list, change or delete their own todos.", "how_to_verify": "Check that every todo query filters by the current user's id." }
+  ],
+  "concepts": ["express router", "parameterised queries", "http status codes", "single database connection"]
+}

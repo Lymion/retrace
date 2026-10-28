@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CodeViewer, type Selection } from "@/components/CodeViewer";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { NotesPanel } from "@/features/annotations/NotesPanel";
+import { RebuildMode } from "@/features/rebuild/RebuildMode";
 import { useAnnotations } from "@/features/annotations/useAnnotations";
 import { TutorPanel } from "@/features/tutor/TutorPanel";
 import { usePanelPlacement } from "@/features/tutor/usePanelPlacement";
@@ -24,7 +25,7 @@ const MODE_LABEL: Record<Mode, string> = {
   quiz: "Quiz",
   audit: "Audit",
 };
-const AVAILABLE_MODES: Mode[] = ["tour"];
+const AVAILABLE_MODES: Mode[] = ["tour", "rebuild"];
 
 interface FileContent {
   id: number;
@@ -222,78 +223,94 @@ export function Workspace({
         </p>
       )}
 
-      <div
-        className={`grid min-h-0 flex-1 grid-cols-1 lg:grid-rows-[minmax(0,1fr)] ${gridColumns}`}
-      >
-        <aside aria-label="Levels and files" className="min-h-0 border-r border-border bg-surface">
-          <LevelSidebar
-            levels={levels}
-            files={files}
-            levelId={levelId}
-            fileId={fileId}
-            dimAfter={null}
-            showAll={showAll}
-            onShowAll={setShowAll}
-            onLevel={chooseLevel}
-            onFile={chooseFile}
-          />
-        </aside>
+      {mode === "rebuild" ? (
+        // The tutor sits out Rebuild mode: it can see the original code.
+        <RebuildMode
+          projectId={project.id}
+          level={level}
+          levels={levels}
+          files={files}
+          onLevel={chooseLevel}
+        />
+      ) : (
+        <>
+          <div
+            className={`grid min-h-0 flex-1 grid-cols-1 lg:grid-rows-[minmax(0,1fr)] ${gridColumns}`}
+          >
+            <aside
+              aria-label="Levels and files"
+              className="min-h-0 border-r border-border bg-surface"
+            >
+              <LevelSidebar
+                levels={levels}
+                files={files}
+                levelId={levelId}
+                fileId={fileId}
+                dimAfter={null}
+                showAll={showAll}
+                onShowAll={setShowAll}
+                onLevel={chooseLevel}
+                onFile={chooseFile}
+              />
+            </aside>
 
-        <section aria-label="Code" className="flex min-h-0 min-w-0 flex-col">
-          {!fileId && (
-            <div className="p-6">
-              <EmptyState title="No file open">
-                {level?.skipped
-                  ? "This level has no files in the project. Ask the tutor to teach it as a missing level."
-                  : "Pick a file on the left."}
-              </EmptyState>
-            </div>
-          )}
-          {fileId && loading && <LoadingState label="Opening file…" />}
-          {fileId && error && (
-            <div className="p-4">
-              <ErrorState message={error} onRetry={reload} />
-            </div>
-          )}
-          {data && (
-            <>
-              <div className="border-b border-border px-3 py-1.5 font-mono text-xs text-muted">
-                {data.file.path} · {data.file.lineCount} lines
-              </div>
-              <div className="min-h-0 flex-1">
-                <CodeViewer
-                  path={data.file.path}
-                  language={data.file.language}
-                  content={data.file.content}
-                  notes={notes.notes}
-                  openLine={openLine}
-                  onOpenLine={setOpenLine}
-                  onSelection={setSelection}
-                />
-              </div>
-              <div className="h-44 shrink-0 overflow-hidden border-t border-border bg-surface">
-                <NotesPanel
-                  notes={notes.notes}
-                  loading={notes.loading}
-                  regenerating={notes.regenerating}
-                  error={notes.error}
-                  openLine={openLine}
-                  onOpen={setOpenLine}
-                  onRetry={notes.retry}
-                  onRegenerate={notes.regenerate}
-                />
-              </div>
-            </>
-          )}
-        </section>
+            <section aria-label="Code" className="flex min-h-0 min-w-0 flex-col">
+              {!fileId && (
+                <div className="p-6">
+                  <EmptyState title="No file open">
+                    {level?.skipped
+                      ? "This level has no files in the project. Ask the tutor to teach it as a missing level."
+                      : "Pick a file on the left."}
+                  </EmptyState>
+                </div>
+              )}
+              {fileId && loading && <LoadingState label="Opening file…" />}
+              {fileId && error && (
+                <div className="p-4">
+                  <ErrorState message={error} onRetry={reload} />
+                </div>
+              )}
+              {data && (
+                <>
+                  <div className="border-b border-border px-3 py-1.5 font-mono text-xs text-muted">
+                    {data.file.path} · {data.file.lineCount} lines
+                  </div>
+                  <div className="min-h-0 flex-1">
+                    <CodeViewer
+                      path={data.file.path}
+                      language={data.file.language}
+                      content={data.file.content}
+                      notes={notes.notes}
+                      openLine={openLine}
+                      onOpenLine={setOpenLine}
+                      onSelection={setSelection}
+                    />
+                  </div>
+                  <div className="h-44 shrink-0 overflow-hidden border-t border-border bg-surface">
+                    <NotesPanel
+                      notes={notes.notes}
+                      loading={notes.loading}
+                      regenerating={notes.regenerating}
+                      error={notes.error}
+                      openLine={openLine}
+                      onOpen={setOpenLine}
+                      onRetry={notes.retry}
+                      onRegenerate={notes.regenerate}
+                    />
+                  </div>
+                </>
+              )}
+            </section>
 
-        {tutorDocked && (
-          <aside aria-label="Tutor panel" className="min-h-0 border-l border-border bg-surface">
-            {tutor}
-          </aside>
-        )}
-      </div>
-      {!tutorDocked && tutor}
+            {tutorDocked && (
+              <aside aria-label="Tutor panel" className="min-h-0 border-l border-border bg-surface">
+                {tutor}
+              </aside>
+            )}
+          </div>
+          {!tutorDocked && tutor}
+        </>
+      )}
     </div>
   );
 }

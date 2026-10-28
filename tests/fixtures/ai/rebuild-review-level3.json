@@ -1,0 +1,22 @@
+{
+  "summary": "Good work: your server starts, the health route works and every list and delete query is scoped to the user. One search query builds SQL from user input, which is the same trap the original fell into.",
+  "verdicts": [
+    { "check_id": "A1", "passed": true, "explanation": "app.js answers GET /api/health with { ok: true }.", "original": { "file": "original/server/app.js", "line": 11 } },
+    { "check_id": "A2", "passed": false, "explanation": "The search route puts q straight into the SQL text.", "original": { "file": "server/routes/todos.js", "line": 16 } },
+    { "check_id": "A3", "passed": true, "explanation": "Every query filters by user_id.", "original": { "file": "server/made-up.js", "line": 3 } }
+  ],
+  "bugs": [
+    { "file": "learner/server/routes/todos.js", "line": 22, "description": "POST does not check that title exists, so an empty todo is saved.", "fix": "Return 400 when title is missing or blank.", "original": null }
+  ],
+  "security_gaps": [
+    { "file": "learner/server/routes/todos.js", "line": 14, "attacker_view": "Someone could send q = %' OR '1'='1 and read every user's todos.", "fix": "Use LIKE ? and pass `%${q}%` as a parameter." }
+  ],
+  "approach_differences": [
+    { "learner": "Used async route handlers with try/catch.", "original": "Uses plain synchronous handlers.", "note": "Both work with better-sqlite3, which is synchronous; your version is ready if you switch to an async database later.", "original_ref": { "file": "original/server/routes/todos.js", "line": 8 } }
+  ],
+  "concepts": [
+    { "name": "express router", "layer": "backend", "result": "solid", "note": "Mounted and used the router correctly." },
+    { "name": "parameterised queries", "layer": "security", "result": "shaky", "note": "Used placeholders everywhere except search." },
+    { "name": "input validation", "layer": "backend", "result": "missed", "note": "No checks on the request body." }
+  ]
+}

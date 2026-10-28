@@ -29,6 +29,16 @@ function numbered(lines: string[], start: number): string {
 const OUTLINE_LINE =
   /^\s*(export\s|async\s+function|function\s|class\s|def\s|@\w+(\.\w+)*\(|(const|let|var)\s+\w+\s*=\s*(async\s*)?(\(|function)|(router|app|bp)\.(get|post|put|patch|delete|use|route)\b|interface\s|type\s+\w+\s*=)/;
 
+/** The declaration lines of a file (functions, classes, routes), as "line: text". */
+export function outline(content: string, max = 20): string[] {
+  return content
+    .split("\n")
+    .map((text, i) => ({ text, line: i + 1 }))
+    .filter(({ text }) => OUTLINE_LINE.test(text))
+    .slice(0, max)
+    .map(({ text, line }) => `${line}: ${text.trim().slice(0, 140)}`);
+}
+
 export interface FocusRange {
   start: number;
   end: number;
