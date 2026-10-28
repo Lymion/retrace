@@ -1,0 +1,187 @@
+import { and, desc, eq, inArray } from "drizzle-orm";
+import type { Db } from "@/db/client";
+import { concepts, files, learnerConcepts, levels, messages, projects } from "@/db/schema";
+import { ProjectAnalysisSchema } from "@/shared/analysis";
+import { buildFactSheet } from "../analysis/summary";
+import { notFound } from "../http";
+import { type Settings, getSettings } from "../settings";
+import type { AIMessage, AIRequest } from "./provider";
+import { renderPrompt } from "./prompts";
+
+// Builds every tutor request in the brief's order: system prompt, project
+// summary (cached), current level, open file, learner profile, then the last
+// 10 messages. Uploaded code always travels inside <file> tags, which the
+// system prompt marks as untrusted data.
+
+export const FILE_LINE_BUDGET = 600;
+const FOCUS_PADDING = 80;
+
+/** Stops uploaded text from closing our <file> tag and posing as instructions. */
+function neutralize(text: string): string {
+  return text.replace(/<\/?file\b/gi, (tag) => tag.replace("<", "<​"));
+}
+
+function numbered(lines: string[], start: number): string {
+  return lines.map((text, i) => `${start + i}| ${text}`).join("\n");
+}
+
+/** Lines that name things (functions, classes, routes), used to sum up the part we leave out. */
+const OUTLINE_LINE =
+  /^\s*(export\s|async\s+function|function\s|class\s|def\s|@\w+(\.\w+)*\(|(const|let|var)\s+\w+\s*=\s*(async\s*)?(\(|function)|(router|app|bp)\.(get|post|put|patch|delete|use|route)\b|interface\s|type\s+\w+\s*=)/;
+
+export interface FocusRange {
+  start: number;
+  end: number;
+}
+
+/**
+ * A file as the model sees it: numbered lines inside a <file> tag. Files over
+ * the budget send the focused range (or the start) plus an outline of the rest.
+ */
+export function fileBlock(path: string, content: string, focus?: FocusRange): string {
+  const lines = content.split("\n");
+  const attrs = `path="${neutralize(path).replace(/"/g, "'")}" lines="${lines.length}"`;
+  if (lines.length <= FILE_LINE_BUDGET) {
+    return `<file ${attrs}>\n${neutralize(numbered(lines, 1))}\n</file>`;
+  }
+
+  const from = focus ? Math.max(1, focus.start - FOCUS_PADDING) : 1;
+  const to = Math.min(lines.length, focus ? focus.end + FOCUS_PADDING : FILE_LINE_BUDGET / 2);
+  const shown = lines.slice(from - 1, to);
+  const outline = lines
+    .map((text, i) => ({ text, line: i + 1 }))
+    .filter(({ text, line }) => (line < from || line > to) && OUTLINE_LINE.test(text))
+    .slice(0, 120)
+    .map(({ text, line }) => `${line}: ${text.trim().slice(0, 140)}`)
+    .join("\n");
+
+  return [
+    `<file ${attrs} shown="${from}-${to}">`,
+    neutralize(numbered(shown, from)),
+    "</file>",
+    `Outline of the lines not shown above (line: declaration):`,
+    neutralize(outline || "(no declarations found)"),
+  ].join("\n");
+}
+
+export function factSheetFor(db: Db, projectId: number): string {
+  const project = db.select().from(projects).where(eq(projects.id, projectId)).get();
+  if (!project) throw notFound("Project");
+  const analysis = ProjectAnalysisSchema.safeParse(project.analysis);
+  if (!analysis.success) return `# Project: ${project.name}\n(No analysis available.)`;
+  return buildFactSheet(project.name, analysis.data, project.summary);
+}
+
+export function levelBlock(db: Db, levelId: number): string {
+  const level = db.select().from(levels).where(eq(levels.id, levelId)).get();
+  if (!level) return "";
+  const levelFiles = db
+    .select({ path: files.path })
+    .from(files)
+    .where(eq(files.levelId, levelId))
+    .all()
+    .map((f) => f.path);
+  return [
+    `## Current level: ${level.number}. ${level.name}${level.skipped ? " (the project skipped this level)" : ""}`,
+    `Goal: ${level.goal}`,
+    `Checkpoint: ${level.checkpoint}`,
+    `Why this order: ${level.whyThisOrder}`,
+    `Files in this level: ${levelFiles.join(", ") || "none"}`,
+  ].join("\n");
+}
+
+const LANGUAGE_RULE: Record<Settings["replyLanguage"], string> = {
+  auto: "Reply in the language the learner writes in (often a mix of English and Malay).",
+  en: "Reply in English.",
+  ms: "Reply in Malay (Bahasa Melayu). Keep code and technical terms in English.",
+};
+
+export function profileBlock(db: Db): string {
+  const settings = getSettings(db);
+  const rows = db
+    .select({
+      name: concepts.name,
+      mastery: learnerConcepts.mastery,
+      misses: learnerConcepts.misses,
+      note: learnerConcepts.note,
+    })
+    .from(learnerConcepts)
+    .innerJoin(concepts, eq(concepts.id, learnerConcepts.conceptId))
+    .all();
+
+  const strong = rows.filter((r) => r.mastery >= 0.7).map((r) => r.name);
+  const weak = rows
+    .filter((r) => r.mastery < 0.4 || r.misses >= 2)
+    .sort((a, b) => a.mastery - b.mastery)
+    .slice(0, 12)
+    .map(
+      (r) =>
+        `${r.name} (mastery ${r.mastery.toFixed(2)}, missed ${r.misses}x${r.note ? `: ${r.note}` : ""})`,
+    );
+
+  return [
+    "## Learner profile",
+    `Name: ${settings.learnerName}. Explanation depth: ${settings.depth}.`,
+    LANGUAGE_RULE[settings.replyLanguage],
+    `Has mastered: ${strong.slice(0, 20).join(", ") || "nothing recorded yet"}.`,
+    `Keeps missing: ${weak.join("; ") || "nothing recorded yet"}.`,
+    weak.length
+      ? "Spend extra care on the concepts they keep missing, and use a different analogy than before."
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/** The last `limit` chat messages for a project, oldest first. */
+export function recentMessages(db: Db, projectId: number, limit = 10): AIMessage[] {
+  return db
+    .select({ role: messages.role, content: messages.content })
+    .from(messages)
+    .where(and(eq(messages.projectId, projectId), inArray(messages.kind, ["chat", "lesson"])))
+    .orderBy(desc(messages.createdAt), desc(messages.id))
+    .limit(limit)
+    .all()
+    .reverse();
+}
+
+export interface TutorRequestInput {
+  db: Db;
+  projectId: number;
+  task: string;
+  model: string;
+  /** Task instructions (one of the prompt files, already filled in). */
+  instructions: string;
+  levelId?: number | null;
+  file?: { path: string; content: string; focus?: FocusRange } | null;
+  /** Extra blocks the task adds after the open file (e.g. a level's files). */
+  extra?: string[];
+  messages: AIMessage[];
+  maxTokens: number;
+  /** Outside context (phase 13 ContextProviders), already formatted. */
+  outside?: string[];
+}
+
+export function buildTutorRequest(input: TutorRequestInput): AIRequest {
+  const settings = getSettings(input.db);
+  const context = [
+    input.instructions,
+    input.levelId ? levelBlock(input.db, input.levelId) : "",
+    input.file
+      ? `## Open file\n${fileBlock(input.file.path, input.file.content, input.file.focus)}`
+      : "",
+    ...(input.extra ?? []),
+    profileBlock(input.db),
+    ...(input.outside ?? []),
+  ].filter(Boolean);
+
+  return {
+    task: input.task,
+    model: input.model,
+    system: renderPrompt("system", { learner_name: settings.learnerName }),
+    cachedContext: factSheetFor(input.db, input.projectId),
+    context: context.join("\n\n"),
+    messages: input.messages,
+    maxTokens: input.maxTokens,
+  };
+}

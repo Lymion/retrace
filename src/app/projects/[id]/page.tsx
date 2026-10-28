@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AnalysisOverview } from "@/features/explorer/AnalysisOverview";
 import { ProjectExplorer } from "@/features/explorer/ProjectExplorer";
+import { LevelMap, type LevelView } from "@/features/roadmap/LevelMap";
 import { ProjectAnalysisSchema } from "@/shared/analysis";
 import { parseId } from "@/server/http";
-import { getProject, listFiles, listRedactions } from "@/server/repo/projects";
+import { getProject, listFiles, listLevels, listRedactions } from "@/server/repo/projects";
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const projectId = parseId((await params).id);
@@ -19,6 +20,18 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const files = listFiles(projectId);
   const redactions = listRedactions(projectId);
   const analysis = ProjectAnalysisSchema.safeParse(project.analysis);
+  const levels: LevelView[] = listLevels(projectId).map((level) => ({
+    id: level.id,
+    number: level.number,
+    name: level.name,
+    goal: level.goal,
+    checkpoint: level.checkpoint,
+    whyThisOrder: level.whyThisOrder,
+    evidence: level.evidence,
+    skipped: level.skipped,
+    status: level.status,
+    files: files.filter((f) => f.levelId === level.id).map((f) => f.path),
+  }));
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
@@ -40,6 +53,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       ) : (
         <p className="text-sm text-muted">{project.error ?? "This project has no analysis yet."}</p>
       )}
+      {analysis.success && <LevelMap projectId={projectId} levels={levels} />}
       <ProjectExplorer projectId={projectId} files={files} redactions={redactions} />
     </div>
   );

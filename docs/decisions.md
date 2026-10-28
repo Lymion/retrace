@@ -56,3 +56,24 @@ Big decisions (stack changes, new services, cut features) are asked first.
   change them at runtime without a restart.
 - **Database connection on `globalThis`**, because Next.js dev can load a module once per route
   bundle and SQLite works best with one connection per process.
+
+### Phase 4: AI layer and roadmap
+
+- **One `AIRequest` shape for both providers**: system prompt, cached project fact sheet, then an
+  uncached block with the task, level, open file and learner profile, then the messages. That is
+  the brief's context order, and only the provider decides how to send it.
+- **Every `<file>` block has numbered lines**, so the model can cite `file:line`. A literal
+  `</file>` inside uploaded text is broken up so the upload cannot close the tag and pose as
+  instructions.
+- **Files over 600 lines** send the focused range (plus 80 lines either side), or the first 300
+  lines, and an outline of declarations for the rest. The outline is built locally; no extra AI call.
+- **A deterministic draft roadmap** (layer + file name -> template level) is given to the model as
+  a starting point. Files the model leaves out keep their draft level, so long projects need a
+  shorter reply and no file is ever left without a level.
+- **The roadmap guard** drops any path not in the upload, places each file once, marks levels
+  without files as skipped (except Level 0, the idea), and downgrades "git" evidence when there is
+  no history. The model cannot break these rules even if it tries.
+- **Rebuilding the roadmap resets level progress** (levels are recreated). The UI asks first.
+- **The output schemas for every task live in `src/shared/contracts.ts` from this phase on**, so
+  Tier 2 features add prompts and screens, not new data shapes.
+- **Rate limit**: one in-memory token bucket for all AI routes (`AI_RATE_LIMIT_PER_MIN`, default 20).

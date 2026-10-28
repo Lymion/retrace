@@ -1,0 +1,136 @@
+{
+  "summary": "Todo is a small to-do list app where each person signs up, logs in and keeps their own list of tasks. It is built for anyone who wants a private checklist in the browser. An Express server stores users and todos in SQLite and issues JWT tokens, and a React client built with Vite calls its JSON API.",
+  "levels": [
+    {
+      "level": 0,
+      "name": "Idea and scope",
+      "goal": "Decide what the app does: personal to-do lists behind a login. The README names the stack and what is out of scope (sharing, due dates, email reset).",
+      "files": ["README.md", ".gitignore"],
+      "checkpoint": "Explain the app in 3 sentences: who it is for, what it does, and how the server and client split the work.",
+      "why_this_order": "Commit #0 added the README and .gitignore before any code, so the idea came first.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 1,
+      "name": "Project setup",
+      "goal": "Create the server package with its dependencies and the environment variables it needs (port, JWT secret, database file).",
+      "files": ["server/package.json", ".env.example", ".env"],
+      "checkpoint": "npm install runs in server/ and the .env.example lists every variable the server reads.",
+      "why_this_order": "Commit #1 set up server/package.json and .env.example right after the idea.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 2,
+      "name": "Data design",
+      "goal": "Design the users and todos tables, with each todo pointing at its owner through user_id.",
+      "files": ["server/schema.sql"],
+      "checkpoint": "Draw the two tables and the user_id link between them.",
+      "why_this_order": "Commit #2 added schema.sql, and db.js reads it, so the schema has to exist first.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 3,
+      "name": "Backend core",
+      "goal": "Open the SQLite database, build the Express app and add the todo routes for listing, adding, updating and deleting.",
+      "files": ["server/db.js", "server/routes/todos.js", "server/app.js", "server/index.js"],
+      "checkpoint": "GET /api/health returns { ok: true } and the todo routes read and write rows.",
+      "why_this_order": "Commits #2 and #3 added db.js, then the routes and app; routes/todos.js imports db.js and app.js imports the routes.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 4,
+      "name": "Auth and sessions",
+      "goal": "Add signup and login with bcrypt password hashing, issue a JWT on login, and protect the todo routes with requireAuth.",
+      "files": ["server/middleware/auth.js", "server/routes/auth.js", "server/routes/users.js"],
+      "checkpoint": "A request to /api/todos without a token gets 401 Not logged in.",
+      "why_this_order": "Commit #4 added the auth middleware and routes after the core routes existed to protect.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 5,
+      "name": "Frontend skeleton",
+      "goal": "Create the Vite React client with its entry HTML, the App component and the Login and Todos screens.",
+      "files": [
+        "client/package.json",
+        "client/vite.config.js",
+        "client/index.html",
+        "client/src/main.jsx",
+        "client/src/App.jsx",
+        "client/src/pages/Login.jsx"
+      ],
+      "checkpoint": "npm run dev in client/ shows the login form.",
+      "why_this_order": "Commit #5 added the whole React skeleton once the API was in place.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 6,
+      "name": "Connect the two",
+      "goal": "Add one api.js module that calls the server with the stored token, and use it from the screens.",
+      "files": ["client/src/api.js"],
+      "checkpoint": "After logging in, your real todos from the server show on screen.",
+      "why_this_order": "Commit #6 added api.js last, and both pages import it.",
+      "evidence": "git",
+      "skipped": false
+    },
+    {
+      "level": 7,
+      "name": "Feature logic",
+      "goal": "The Todos screen: load, add, toggle and delete todos with a loading state.",
+      "files": ["client/src/pages/Todos.jsx"],
+      "checkpoint": "Use the app end to end: sign up, log in, add a todo, tick it and delete it.",
+      "why_this_order": "Todos.jsx imports api.js, so the feature logic comes after the connection layer.",
+      "evidence": "deps",
+      "skipped": false
+    },
+    {
+      "level": 8,
+      "name": "Validation and errors",
+      "goal": "The project has almost no input validation: titles are not checked and errors are not handled consistently.",
+      "files": [],
+      "checkpoint": "Sending an empty or 10,000-character todo title returns a clear 400 error instead of being stored.",
+      "why_this_order": "Validation hardens features that already work, so it comes after them.",
+      "evidence": "template",
+      "skipped": true
+    },
+    {
+      "level": 9,
+      "name": "Testing",
+      "goal": "There are no tests in this project.",
+      "files": [],
+      "checkpoint": "A test suite covers signup, login and the todo routes, and passes.",
+      "why_this_order": "Tests lock in behaviour once the features exist.",
+      "evidence": "template",
+      "skipped": true
+    },
+    {
+      "level": 10,
+      "name": "Security hardening",
+      "goal": "Fix the SQL injection in /search, the hard-coded JWT fallback secret, the open CORS policy and the HTML injection in the todo list.",
+      "files": [],
+      "checkpoint": "Your own audit finds no injection, no hard-coded secret and CORS limited to the client's origin.",
+      "why_this_order": "Hardening reviews code that already exists.",
+      "evidence": "template",
+      "skipped": true
+    },
+    {
+      "level": 11,
+      "name": "Ship and maintain",
+      "goal": "There is no deployment, CI or logging setup.",
+      "files": [],
+      "checkpoint": "The app runs on a server with CI running tests on every push.",
+      "why_this_order": "Shipping comes last, once the app is tested and safe.",
+      "evidence": "template",
+      "skipped": true
+    }
+  ],
+  "layers": {
+    "server/db.js": "database",
+    "client/src/api.js": "frontend"
+  }
+}

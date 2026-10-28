@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AIError } from "./ai/provider";
 import { ExtractError } from "./ingest/safe-extract";
 import { GithubError, SizeLimitError } from "./ingest/github";
 import { errorFields, log } from "./logger";
@@ -6,9 +7,21 @@ import { errorFields, log } from "./logger";
 // Small helpers shared by every API route, so errors look the same everywhere:
 // { error: { message, code? } } with a fitting HTTP status.
 
-export function errorResponse(status: number, message: string, code?: string): Response {
-  return Response.json({ error: { message, code } }, { status });
+export function errorResponse(
+  status: number,
+  message: string,
+  code?: string,
+  extra?: Record<string, string>,
+): Response {
+  return Response.json({ error: { message, code, ...extra } }, { status });
 }
+
+const AI_STATUS: Record<AIError["code"], number> = {
+  not_ready: 503,
+  rate_limited: 429,
+  invalid_output: 502,
+  provider_failed: 502,
+};
 
 type ParseResult<T> = { ok: true; data: T } | { ok: false; response: Response };
 
@@ -44,6 +57,13 @@ export function handleRouteError(error: unknown, event: string): Response {
     return errorResponse(400, error.issues[0]?.message ?? "Invalid input.", "invalid_body");
   }
   if (error instanceof HttpError) return errorResponse(error.status, error.message, error.code);
+  if (error instanceof AIError) {
+    // The provider id lets the UI offer a one-click switch to the other provider.
+    log.warn(event, { code: error.code, provider: error.provider });
+    return errorResponse(AI_STATUS[error.code], error.message, `ai_${error.code}`, {
+      ...(error.provider ? { provider: error.provider } : {}),
+    });
+  }
   log.error(event, errorFields(error));
   return errorResponse(500, "Something went wrong on the server. Check the terminal for details.");
 }
