@@ -108,7 +108,7 @@ export function LevelMap({ projectId, levels }: { projectId: number; levels: Lev
               <span>{levels.length - taught.length} skipped by this project</span>
             </div>
             <div
-              className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2"
+              className="term-bar mt-1"
               role="progressbar"
               aria-label="Levels completed"
               aria-valuemin={0}
@@ -131,13 +131,18 @@ export function LevelMap({ projectId, levels }: { projectId: number; levels: Lev
                 <div className="flex flex-wrap items-center gap-2">
                   <span
                     aria-hidden
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-                      level.status === "done" ? "bg-ok text-bg" : "bg-surface-2"
+                    className={`shrink-0 rounded-sm px-1.5 text-sm font-bold ${
+                      level.status === "done"
+                        ? "bg-ok text-bg"
+                        : level.skipped
+                          ? "text-warn"
+                          : "bg-surface-2 text-keyword"
                     }`}
                   >
-                    {level.number}
+                    {level.status === "done" ? "✓" : "L"}
+                    {String(level.number).padStart(2, "0")}
                   </span>
-                  <h3 className="font-semibold">
+                  <h3 className="font-semibold text-bright">
                     <span className="sr-only">Level {level.number}: </span>
                     {level.name}
                   </h3>
@@ -158,7 +163,10 @@ export function LevelMap({ projectId, levels }: { projectId: number; levels: Lev
                 </div>
                 <p className="mt-2 text-sm">{level.goal}</p>
                 <p className="mt-2 text-sm">
-                  <span className="font-medium text-ok">Checkpoint:</span> {level.checkpoint}
+                  <span className="font-medium text-ok">
+                    <span aria-hidden>✓ </span>Checkpoint:
+                  </span>{" "}
+                  {level.checkpoint}
                 </p>
                 <details className="mt-2 text-sm">
                   <summary className="cursor-pointer text-muted">
@@ -166,7 +174,7 @@ export function LevelMap({ projectId, levels }: { projectId: number; levels: Lev
                   </summary>
                   <p className="mt-1">{level.whyThisOrder}</p>
                   {level.files.length > 0 && (
-                    <ul className="mt-2 grid gap-0.5 font-mono text-xs text-muted sm:grid-cols-2">
+                    <ul className="mt-2 grid gap-0.5 font-mono text-xs text-accent sm:grid-cols-2">
                       {level.files.map((f) => (
                         <li key={f} className="truncate" title={f}>
                           {f}

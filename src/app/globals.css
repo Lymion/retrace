@@ -1,24 +1,34 @@
 @import "tailwindcss";
 
-/* Design tokens. Dark is the default; the palette keeps text at WCAG AA
-   contrast or better against its surface. */
+/* Design tokens: a dark terminal. Text colours keep WCAG AA contrast or
+   better against every surface; --comment is the dimmest text colour that
+   still passes, and anything dimmer is decoration only. The syntax colours
+   match the app icon (scripts/make-icon.mjs). */
 :root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface-2: #1f2630;
-  --border: #30363d;
-  --text: #e6edf3;
-  --muted: #9da7b3;
-  --accent: #6cb6ff;
-  --accent-strong: #1f6feb;
-  --ok: #56d364;
+  --bg: #0a0d12;
+  --surface: #0e131a;
+  --surface-2: #161d27;
+  --border: #263142;
+  --text: #d7dee8;
+  --bright: #f0f6fc;
+  --muted: #95a1b2;
+  --comment: #7d8a9c;
+  --accent: #79c0ff;
+  --accent-strong: #388bfd;
+  --ok: #7ee787;
   --warn: #e3b341;
   --danger: #ff7b72;
-  --concept: #6cb6ff;
+  --keyword: #d2a8ff;
+  --number: #ffa657;
+  --cyan: #56d4dd;
+  --concept: #79c0ff;
   --security: #ff7b72;
   --pattern: #d2a8ff;
   --gotcha: #e3b341;
+  /* Top bar + status bar, for screens that fill the window. */
+  --chrome: 4.25rem;
   color-scheme: dark;
+  accent-color: var(--ok);
 }
 
 @theme inline {
@@ -27,73 +37,283 @@
   --color-surface-2: var(--surface-2);
   --color-border: var(--border);
   --color-text: var(--text);
+  --color-bright: var(--bright);
   --color-muted: var(--muted);
+  --color-comment: var(--comment);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
+  --color-keyword: var(--keyword);
+  --color-number: var(--number);
+  --color-cyan: var(--cyan);
   --color-concept: var(--concept);
   --color-security: var(--security);
   --color-pattern: var(--pattern);
   --color-gotcha: var(--gotcha);
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  /* Everything is monospace. Cascadia Code ships with Windows 11; the rest
+     are the usual terminal fonts on other systems. */
+  --font-mono:
+    "Cascadia Code", "Cascadia Mono", "JetBrains Mono", "Fira Code", ui-monospace, "SF Mono", Menlo,
+    Consolas, "Liberation Mono", monospace;
+  --font-sans: var(--font-mono);
+}
+
+/* Square-ish corners, like a terminal window. */
+@theme {
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
 }
 
 html,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
+}
+
+body {
+  line-height: 1.55;
+}
+
+::selection {
+  background: rgba(126, 231, 135, 0.28);
+  color: var(--bright);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* A faint CRT scanline texture over the whole window. Pointer events pass
+   straight through it. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.018) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+@media print {
+  body::after {
+    display: none;
+  }
 }
 
 @layer components {
+  /* Buttons read like a TUI: [ label ]. The brackets are decoration, so
+     screen readers skip them ("/ ''" is the alternative text). */
   .btn {
-    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm text-text hover:border-accent disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-sm text-text hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50;
   }
-  /* White on #1f6feb is 4.6:1, enough for small text. */
+  .btn::before,
+  .btn::after {
+    color: var(--comment);
+  }
+  .btn::before {
+    content: "[";
+    content: "[" / "";
+  }
+  .btn::after {
+    content: "]";
+    content: "]" / "";
+  }
+  .btn:not(:disabled):hover::before,
+  .btn:not(:disabled):hover::after {
+    color: var(--ok);
+  }
   .btn-primary {
-    @apply border-accent-strong bg-accent-strong text-white hover:bg-[#1a5fd0];
+    @apply font-semibold text-ok;
+    text-shadow: 0 0 8px rgba(126, 231, 135, 0.35);
+  }
+  .btn-primary::before,
+  .btn-primary::after {
+    color: var(--ok);
+  }
+  /* Selected-item style: the whole button inverts, as in a terminal menu. */
+  .btn-primary:not(:disabled):hover {
+    @apply bg-ok text-bg;
+    text-shadow: none;
+  }
+  .btn-primary:not(:disabled):hover::before,
+  .btn-primary:not(:disabled):hover::after {
+    color: var(--bg);
   }
   .btn-ghost {
-    @apply border-transparent bg-transparent hover:bg-surface-2;
+    @apply text-muted hover:text-text;
+  }
+  .btn-ghost::before,
+  .btn-ghost::after {
+    content: none;
   }
   .input {
-    @apply w-full rounded-md border border-border bg-bg px-3 py-1.5 text-sm text-text placeholder:text-muted focus:border-accent focus:outline-none;
+    @apply w-full rounded-sm border border-border bg-bg px-3 py-1.5 text-sm text-text placeholder:text-comment focus:border-ok focus:outline-none;
+    caret-color: var(--ok);
+    caret-shape: block;
   }
   .card {
-    @apply rounded-lg border border-border bg-surface;
+    @apply rounded-sm border border-border bg-surface;
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2 py-0.5 text-xs text-muted;
+    @apply inline-flex items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 py-0 text-xs text-muted;
+  }
+}
+
+/* Section headings read like markdown in a terminal: "## Level map". */
+h2::before {
+  content: "## ";
+  content: "## " / "";
+  color: var(--keyword);
+  font-weight: 400;
+}
+
+/* Soft neon glow, for prompts, titles and the active tab. A utility, so
+   variants like group-hover:glow work. */
+@utility glow {
+  text-shadow: 0 0 10px color-mix(in srgb, currentColor 40%, transparent);
+}
+
+/* The block cursor at the end of a prompt. */
+.cursor {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.15em;
+  margin-left: 0.35em;
+  vertical-align: text-bottom;
+  background: var(--ok);
+  box-shadow: 0 0 8px rgba(126, 231, 135, 0.55);
+  animation: cursor-blink 1.1s steps(1) infinite;
+}
+
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* A braille spinner, like most CLIs use. */
+.spinner::before {
+  content: "⠋";
+  content: "⠋" / "";
+  display: inline-block;
+  width: 1ch;
+  color: var(--cyan);
+  animation: spinner 0.8s steps(1) infinite;
+}
+
+@keyframes spinner {
+  0% {
+    content: "⠋";
+  }
+  10% {
+    content: "⠙";
+  }
+  20% {
+    content: "⠹";
+  }
+  30% {
+    content: "⠸";
+  }
+  40% {
+    content: "⠼";
+  }
+  50% {
+    content: "⠴";
+  }
+  60% {
+    content: "⠦";
+  }
+  70% {
+    content: "⠧";
+  }
+  80% {
+    content: "⠇";
+  }
+  90% {
+    content: "⠏";
+  }
+}
+
+/* Progress bars drawn as blocks: ▮▮▮▮▯▯. The mask cuts the track and its
+   fill into cells, so any bar markup inside it stays the same. */
+.term-bar {
+  height: 0.7rem;
+  background: var(--border);
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 9px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 9px);
+}
+
+/* The ASCII-art title on the home screen. */
+.banner {
+  background: linear-gradient(
+    90deg,
+    var(--keyword),
+    var(--accent) 40%,
+    var(--ok) 70%,
+    var(--number)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 8px rgba(121, 192, 255, 0.35));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor,
+  .spinner::before {
+    animation: none;
   }
 }
 
 /* Visible keyboard focus everywhere, never removed. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ok);
   outline-offset: 2px;
 }
 
-/* Markdown from the tutor. Raw HTML is never rendered, so only these
-   elements can appear. */
+/* Markdown from the tutor, styled like a terminal markdown viewer. Raw HTML
+   is never rendered, so only these elements can appear. */
 .prose-tutor {
-  line-height: 1.6;
+  line-height: 1.65;
   overflow-wrap: anywhere;
 }
 .prose-tutor h1,
 .prose-tutor h2,
 .prose-tutor h3 {
-  font-weight: 600;
+  color: var(--bright);
+  font-weight: 700;
   margin: 1em 0 0.4em;
 }
+.prose-tutor h1::before {
+  content: "# ";
+  content: "# " / "";
+  color: var(--keyword);
+}
+.prose-tutor h2::before {
+  content: "## ";
+  content: "## " / "";
+}
+.prose-tutor h3::before {
+  content: "### ";
+  content: "### " / "";
+  color: var(--keyword);
+}
 .prose-tutor h1 {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
 }
 .prose-tutor h2 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
 }
 .prose-tutor h3 {
   font-size: 1rem;
@@ -106,28 +326,40 @@ body {
   margin: 0.5em 0;
 }
 .prose-tutor ul {
-  list-style: disc;
-  padding-left: 1.25rem;
+  list-style-type: "- ";
+  padding-left: 1.5rem;
 }
 .prose-tutor ol {
   list-style: decimal;
-  padding-left: 1.25rem;
+  padding-left: 1.75rem;
+}
+.prose-tutor li::marker {
+  color: var(--number);
+}
+.prose-tutor strong {
+  color: var(--bright);
+}
+.prose-tutor em {
+  color: var(--cyan);
 }
 .prose-tutor code {
   font-family: var(--font-mono);
-  font-size: 0.85em;
+  font-size: 0.9em;
+  color: var(--number);
   background: var(--surface-2);
-  border-radius: 4px;
-  padding: 0.1em 0.3em;
+  border-radius: 2px;
+  padding: 0.1em 0.35em;
 }
 .prose-tutor pre {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-left: 2px solid var(--keyword);
+  border-radius: 2px;
   padding: 0.75rem;
   overflow-x: auto;
 }
 .prose-tutor pre code {
+  color: var(--text);
   background: none;
   padding: 0;
 }
@@ -136,9 +368,14 @@ body {
   text-decoration: underline;
 }
 .prose-tutor blockquote {
-  border-left: 3px solid var(--border);
+  border-left: 2px solid var(--ok);
   padding-left: 0.75rem;
   color: var(--muted);
+}
+.prose-tutor hr {
+  border: 0;
+  border-top: 1px dashed var(--border);
+  margin: 1em 0;
 }
 .prose-tutor table {
   border-collapse: collapse;
@@ -148,30 +385,37 @@ body {
   border: 1px solid var(--border);
   padding: 0.25rem 0.5rem;
 }
+.prose-tutor th {
+  color: var(--accent);
+}
 
 /* Monaco glyph-margin markers for annotations. */
 .annot-glyph {
-  border-radius: 50%;
-  margin-left: 4px;
-  width: 10px !important;
-  height: 10px !important;
-  margin-top: 5px;
+  border-radius: 1px;
+  margin-left: 5px;
+  width: 8px !important;
+  height: 12px !important;
+  margin-top: 4px;
   cursor: pointer;
 }
 .annot-glyph-concept {
   background: var(--concept);
+  box-shadow: 0 0 6px var(--concept);
 }
 .annot-glyph-security {
   background: var(--security);
+  box-shadow: 0 0 6px var(--security);
 }
 .annot-glyph-pattern {
   background: var(--pattern);
+  box-shadow: 0 0 6px var(--pattern);
 }
 .annot-glyph-gotcha {
   background: var(--gotcha);
+  box-shadow: 0 0 6px var(--gotcha);
 }
 .annot-line {
-  background: rgba(108, 182, 255, 0.06);
+  background: rgba(121, 192, 255, 0.06);
 }
 
 /* The inline note under a line, opened from the gutter or the notes list. */
@@ -179,13 +423,13 @@ body {
   position: relative;
   margin: 2px 8px 2px 48px;
   padding: 6px 28px 6px 10px;
-  border-left: 3px solid var(--accent);
-  border-radius: 4px;
+  border-left: 2px solid var(--accent);
+  border-radius: 2px;
   background: var(--surface-2);
   color: var(--text);
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.45;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
   white-space: normal;
   overflow: hidden;
 }
@@ -216,4 +460,9 @@ body {
 /* A line the learner jumped to (audit finding, tutor link). */
 .focus-line {
   background: rgba(227, 179, 65, 0.18);
+}
+
+/* The status-bar command line shows focus with its COMMAND badge instead. */
+.cmd-input:focus-visible {
+  outline: none;
 }

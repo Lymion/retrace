@@ -25,7 +25,7 @@ export function AnalysisOverview({
         <p className="text-sm text-muted">
           {analysis.fileCount} files · {analysis.totalLines.toLocaleString("en")} lines
         </p>
-        <div className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+        <div className="term-bar mt-2 flex" aria-hidden>
           {analysis.languages.map((lang, i) => (
             <span
               key={lang.name}

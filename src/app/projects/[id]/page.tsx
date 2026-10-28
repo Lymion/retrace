@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PageHeader } from "@/components/terminal";
 import { ProjectAudit } from "@/features/audit/ProjectAudit";
 import { AnalysisOverview } from "@/features/explorer/AnalysisOverview";
 import { ProjectExplorer } from "@/features/explorer/ProjectExplorer";
@@ -36,28 +37,24 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   }));
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <nav aria-label="Breadcrumb" className="text-sm text-muted">
-        <Link href="/" className="hover:text-text">
-          Projects
-        </Link>{" "}
-        / <span className="text-text">{project.name}</span>
-      </nav>
-      <header className="flex flex-wrap items-start gap-3">
-        <div className="mr-auto">
-          <h1 className="text-2xl font-semibold">{project.name}</h1>
-          <p className="mt-1 text-sm text-muted">
-            {project.source === "github" ? "From GitHub" : "Uploaded zip"} · {project.sourceRef} ·{" "}
-            {files.length} files
-          </p>
-        </div>
-        <Link href={`/projects/${projectId}/challenge`} className="btn">
-          Remix challenge
-        </Link>
-        <Link href={`/projects/${projectId}/workspace`} className="btn btn-primary">
-          Open workspace
-        </Link>
-      </header>
+    <div className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
+      <PageHeader
+        path={[{ label: project.name }]}
+        title={project.name}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/projects/${projectId}/challenge`} className="btn">
+              Remix challenge
+            </Link>
+            <Link href={`/projects/${projectId}/workspace`} className="btn btn-primary">
+              Open workspace
+            </Link>
+          </div>
+        }
+      >
+        {project.source === "github" ? "From GitHub" : "Uploaded zip"} · {project.sourceRef} ·{" "}
+        {files.length} files
+      </PageHeader>
       {analysis.success ? (
         <AnalysisOverview analysis={analysis.data} aiSummary={project.summary} />
       ) : (

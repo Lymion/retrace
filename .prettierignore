@@ -6,3 +6,4 @@ public/monaco
 samples
 tests/fixtures
 package-lock.json
+**/__snapshots__

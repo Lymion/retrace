@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CodeViewer, type Selection } from "@/components/CodeViewer";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
+import { Prompt } from "@/components/terminal";
 import { NotesPanel } from "@/features/annotations/NotesPanel";
 import { AuditPanel } from "@/features/audit/AuditPanel";
 import { QuizPanel } from "@/features/quiz/QuizPanel";
@@ -28,6 +29,24 @@ const MODE_LABEL: Record<Mode, string> = {
   audit: "Audit",
 };
 const AVAILABLE_MODES: Mode[] = ["tour", "rebuild", "quiz", "audit"];
+/** What the prompt shows for each mode, as if it were typed. */
+const MODE_COMMAND: Record<Mode, string> = {
+  tour: "retrace tour",
+  rebuild: "retrace rebuild",
+  quiz: "retrace quiz",
+  audit: "retrace audit",
+};
+
+/** "Data model & API" → "data-model-api", for the prompt path. */
+function slug(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 32) || "level"
+  );
+}
 
 interface FileContent {
   id: number;
@@ -153,21 +172,18 @@ export function Workspace({
   );
 
   return (
-    <div className="flex h-[calc(100dvh-3rem)] min-h-0 flex-col overflow-hidden">
+    <div className="flex h-[calc(100dvh-var(--chrome))] min-h-0 flex-col overflow-hidden">
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2">
-        <nav aria-label="Breadcrumb" className="min-w-0 truncate text-sm text-muted">
-          <Link href={`/projects/${project.id}`} className="hover:text-text">
-            {project.name}
-          </Link>
-          {level && (
-            <>
-              {" / "}
-              <span className="text-text">
-                Level {level.number}: {level.name}
-              </span>
-            </>
-          )}
-        </nav>
+        <Prompt
+          className="max-w-full"
+          path={[
+            { label: project.name, href: `/projects/${project.id}` },
+            level
+              ? { label: `L${String(level.number).padStart(2, "0")}-${slug(level.name)}` }
+              : { label: "workspace" },
+          ]}
+          command={MODE_COMMAND[mode]}
+        />
         {level && !level.skipped && (
           <button
             type="button"
@@ -182,7 +198,7 @@ export function Workspace({
         <div
           role="tablist"
           aria-label="Mode"
-          className="ml-auto flex rounded-md border border-border p-0.5"
+          className="ml-auto flex rounded-sm border border-border p-0.5"
           onKeyDown={(event) => {
             // Left/Right arrows move between modes, as in any tab list.
             if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
@@ -212,8 +228,8 @@ export function Workspace({
                 disabled={!available}
                 title={available ? undefined : "Coming in a later phase"}
                 onClick={() => setMode(m)}
-                className={`rounded px-3 py-1 text-sm ${
-                  mode === m ? "bg-accent-strong text-white" : "text-muted hover:text-text"
+                className={`rounded-sm px-3 py-1 text-sm ${
+                  mode === m ? "bg-ok font-bold text-bg" : "text-muted hover:text-text"
                 } disabled:cursor-not-allowed disabled:opacity-40`}
               >
                 {MODE_LABEL[m]}

@@ -1,6 +1,6 @@
 "use client";
 
-import Editor, { type Monaco, type OnMount, loader } from "@monaco-editor/react";
+import Editor, { type BeforeMount, type Monaco, type OnMount, loader } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 
 // Monaco loads from our own origin (copied to /public/monaco on install),
@@ -8,6 +8,58 @@ import { useEffect, useRef } from "react";
 loader.config({ paths: { vs: "/monaco/vs" } });
 
 type Editor = Parameters<OnMount>[0];
+
+// The editor's colours match the app's terminal theme (src/app/globals.css)
+// and the syntax colours of the app icon.
+const THEME = "retrace-terminal";
+const defineTheme: BeforeMount = (monaco) => {
+  monaco.editor.defineTheme(THEME, {
+    base: "vs-dark",
+    inherit: true,
+    rules: [
+      { token: "comment", foreground: "7d8a9c", fontStyle: "italic" },
+      { token: "keyword", foreground: "d2a8ff" },
+      { token: "string", foreground: "7ee787" },
+      { token: "string.escape", foreground: "56d4dd" },
+      { token: "number", foreground: "ffa657" },
+      { token: "regexp", foreground: "56d4dd" },
+      { token: "type", foreground: "79c0ff" },
+      { token: "type.identifier", foreground: "79c0ff" },
+      { token: "constant", foreground: "ffa657" },
+      { token: "variable", foreground: "ffa657" },
+      { token: "delimiter", foreground: "95a1b2" },
+      { token: "tag", foreground: "7ee787" },
+      { token: "attribute.name", foreground: "79c0ff" },
+      { token: "attribute.value", foreground: "a5d6ff" },
+      { token: "key", foreground: "79c0ff" },
+      { token: "string.key.json", foreground: "79c0ff" },
+      { token: "string.value.json", foreground: "7ee787" },
+    ],
+    colors: {
+      "editor.background": "#0a0d12",
+      "editor.foreground": "#d7dee8",
+      "editorLineNumber.foreground": "#3b475a",
+      "editorLineNumber.activeForeground": "#7ee787",
+      "editorCursor.foreground": "#7ee787",
+      "editor.selectionBackground": "#7ee78738",
+      "editor.inactiveSelectionBackground": "#7ee78720",
+      "editor.lineHighlightBackground": "#161d27",
+      "editor.lineHighlightBorder": "#00000000",
+      "editorGutter.background": "#0a0d12",
+      "editorIndentGuide.background1": "#1b2330",
+      "editorIndentGuide.activeBackground1": "#2f3b4d",
+      "editorWhitespace.foreground": "#263142",
+      "editorWidget.background": "#0e131a",
+      "editorWidget.border": "#263142",
+      "editorBracketMatch.background": "#7ee78722",
+      "editorBracketMatch.border": "#7ee78766",
+      "scrollbarSlider.background": "#26314299",
+      "scrollbarSlider.hoverBackground": "#33415599",
+      "scrollbarSlider.activeBackground": "#3b4a60",
+      focusBorder: "#7ee787",
+    },
+  });
+};
 
 export interface ViewerNote {
   id: number;
@@ -179,10 +231,11 @@ export function CodeViewer({
       path={path}
       value={content}
       language={language}
-      theme="vs-dark"
+      theme={THEME}
+      beforeMount={defineTheme}
       onMount={handleMount}
       onChange={(value) => onChange?.(value ?? "")}
-      loading={<span className="p-4 text-sm text-muted">Loading the editor…</span>}
+      loading={<span className="spinner p-4 text-sm text-muted">Loading the editor…</span>}
       options={{
         readOnly,
         domReadOnly: readOnly,
@@ -190,6 +243,9 @@ export function CodeViewer({
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
         fontSize: 13,
+        fontFamily: "'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace",
+        cursorStyle: "block",
+        cursorBlinking: "phase",
         lineNumbersMinChars: 3,
         automaticLayout: true,
         renderLineHighlight: readOnly ? "none" : "line",

@@ -54,12 +54,24 @@ export function ProjectList({ projects }: { projects: ProjectSummaryItem[] }) {
           </EmptyState>
         </div>
       ) : (
-        <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
+        <ul className="mt-3 divide-y divide-border rounded-sm border border-border bg-surface">
           {projects.map((project) => (
-            <li key={project.id} className="flex items-center gap-3 px-4 py-3">
+            <li
+              key={project.id}
+              className="group flex items-center gap-3 px-3 py-2.5 hover:bg-surface-2"
+            >
+              <span aria-hidden className="w-[4ch] shrink-0 text-right text-xs text-comment">
+                {project.id}
+              </span>
               <div className="min-w-0 flex-1">
-                <Link href={`/projects/${project.id}`} className="font-medium hover:text-accent">
+                <Link
+                  href={`/projects/${project.id}`}
+                  className="font-semibold text-accent group-hover:glow hover:underline"
+                >
                   {project.name}
+                  <span aria-hidden className="text-comment">
+                    /
+                  </span>
                 </Link>
                 <p className="truncate text-xs text-muted">
                   {project.source === "github" ? "GitHub" : "Zip"} · {project.sourceRef} ·{" "}
@@ -73,12 +85,13 @@ export function ProjectList({ projects }: { projects: ProjectSummaryItem[] }) {
               )}
               <button
                 type="button"
-                className="btn btn-ghost text-muted"
+                className="btn btn-ghost text-muted hover:text-danger"
                 onClick={() => remove(project)}
                 disabled={deleting === project.id}
                 aria-label={`Delete ${project.name}`}
+                title="Delete this project"
               >
-                Delete
+                rm
               </button>
             </li>
           ))}

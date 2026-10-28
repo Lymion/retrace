@@ -165,3 +165,17 @@ Big decisions (stack changes, new services, cut features) are asked first.
   running in the background after the learner is done.
 - **The icon is drawn by a script** (`scripts/make-icon.mjs`, plain Node and zlib), so it can be
   changed without an image editor or an extra dependency.
+
+### Terminal look
+
+- **The whole UI is monospace and styled like a terminal**: a title bar with tmux-style tabs, a
+  prompt line that doubles as the breadcrumb, `[ bracket ]` buttons, `##` section headings, a
+  braille spinner and block progress bars. Colours are the icon's syntax colours, and every text
+  colour still meets WCAG AA on its background.
+- **No font dependency.** The stack starts with Cascadia Code, which ships with Windows 11, and
+  falls back to the usual terminal fonts elsewhere, so nothing is downloaded at build time.
+- **The status-bar command line only navigates** (`ls`, `cd`, `open`, `remix`, `progress`,
+  `settings`, `back`, `pwd`, `clear`). It never runs code, calls the tutor or changes data, and its
+  parser is a pure function with its own tests (`src/lib/commands.ts`).
+- **Monaco gets a matching theme** (`retrace-terminal`, defined in `CodeViewer`), so the editor
+  and the rest of the screen share one background and palette.

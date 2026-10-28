@@ -48,7 +48,7 @@ const TOP_LIMIT = 100;
 /** The floating panel's height: its normal size, or less on a short window. */
 export function panelHeight(): number {
   if (typeof window === "undefined") return PANEL_HEIGHT;
-  return Math.max(240, Math.min(PANEL_HEIGHT, window.innerHeight - 72));
+  return Math.max(240, Math.min(PANEL_HEIGHT, window.innerHeight - 100));
 }
 
 /** Keeps the whole floating panel inside the window, below the top bar. */
@@ -59,7 +59,8 @@ function clamp(value: Placement): Placement {
     x: Math.min(Math.max(8, value.x), Math.max(8, window.innerWidth - PANEL_WIDTH - 8)),
     y: Math.min(
       Math.max(TOP_LIMIT, value.y),
-      Math.max(TOP_LIMIT, window.innerHeight - panelHeight() - 8),
+      // 36px keeps it above the status bar.
+      Math.max(TOP_LIMIT, window.innerHeight - panelHeight() - 36),
     ),
   };
 }

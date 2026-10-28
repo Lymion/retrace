@@ -130,7 +130,7 @@ export function TutorPanel({
         onClick={() => update({ collapsed: false })}
         className={
           placement.floating
-            ? "btn btn-primary fixed right-6 bottom-6 z-40 shadow-lg"
+            ? "btn btn-primary fixed right-6 bottom-12 z-40 border-ok bg-surface shadow-lg"
             : "flex h-full w-full items-start justify-center pt-3 text-sm text-muted hover:text-text"
         }
         aria-label="Open the tutor"
@@ -229,9 +229,9 @@ export function TutorPanel({
           <MessageBubble key={m.id} message={m} filePaths={filePaths} onOpenFile={onOpenFile} />
         ))}
         {pending && (
-          <div>
+          <div className="border-l-2 border-keyword/50 pl-3">
             {pending.kind === "lesson" && (
-              <p className="mb-1 text-xs text-muted">Lesson · Level {pending.levelNumber}</p>
+              <p className="mb-1 text-xs text-comment"># lesson · level {pending.levelNumber}</p>
             )}
             {pending.text ? (
               <Markdown filePaths={filePaths} onOpenFile={onOpenFile}>
@@ -286,6 +286,9 @@ export function TutorPanel({
           }}
           className="flex items-end gap-2"
         >
+          <span aria-hidden className="glow self-start pt-1.5 font-bold text-ok">
+            ❯
+          </span>
           <label htmlFor="tutor-input" className="sr-only">
             Message the tutor
           </label>
@@ -293,7 +296,7 @@ export function TutorPanel({
             id="tutor-input"
             className="input min-h-[2.5rem] resize-none"
             rows={2}
-            placeholder="Ask the tutor… (Enter to send, Shift+Enter for a new line)"
+            placeholder="ask the tutor… (Enter sends, Shift+Enter adds a line)"
             value={draft}
             maxLength={4000}
             onChange={(e) => setDraft(e.target.value)}
@@ -325,15 +328,21 @@ function MessageBubble({
 }) {
   if (message.role === "user") {
     return (
-      <div className="ml-8 rounded-lg bg-accent-strong/20 px-3 py-2 text-sm whitespace-pre-wrap">
-        {message.content}
+      <div className="flex gap-2 text-sm">
+        <span aria-hidden className="shrink-0 font-bold text-ok">
+          ❯
+        </span>
+        <p className="min-w-0 whitespace-pre-wrap text-bright">
+          <span className="sr-only">You: </span>
+          {message.content}
+        </p>
       </div>
     );
   }
   return (
-    <div>
+    <div className="border-l-2 border-keyword/50 pl-3">
       {message.kind === "lesson" && (
-        <p className="mb-1 text-xs text-muted">Lesson · Level {message.levelNumber ?? "?"}</p>
+        <p className="mb-1 text-xs text-comment"># lesson · level {message.levelNumber ?? "?"}</p>
       )}
       <Markdown filePaths={filePaths} onOpenFile={onOpenFile}>
         {message.content}

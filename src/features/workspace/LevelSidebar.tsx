@@ -62,22 +62,25 @@ export function LevelSidebar({
                     type="button"
                     onClick={() => onLevel(level.id)}
                     aria-current={active ? "step" : undefined}
-                    className={`flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm ${
-                      active ? "bg-accent-strong/25" : "hover:bg-surface-2"
+                    className={`flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left text-sm ${
+                      active ? "bg-ok/15 text-bright" : "hover:bg-surface-2"
                     } ${dimmed ? "opacity-40" : ""}`}
                   >
+                    <span aria-hidden className="w-3 shrink-0 text-xs text-ok">
+                      {active ? "❯" : ""}
+                    </span>
                     <span
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] ${
+                      className={`shrink-0 rounded-sm px-1 text-[11px] font-bold ${
                         level.status === "done"
                           ? "bg-ok text-bg"
                           : level.skipped
-                            ? "border border-dashed border-warn text-warn"
-                            : "bg-surface-2"
+                            ? "text-warn"
+                            : "bg-surface-2 text-keyword"
                       }`}
                     >
-                      {level.number}
+                      {String(level.number).padStart(2, "0")}
                     </span>
-                    <span className="truncate">{level.name}</span>
+                    <span className={`truncate ${active ? "glow" : ""}`}>{level.name}</span>
                     {level.skipped && <span className="sr-only">(skipped in this project)</span>}
                   </button>
                 </li>

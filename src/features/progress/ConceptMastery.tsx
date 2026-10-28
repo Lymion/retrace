@@ -84,7 +84,7 @@ export function ConceptMastery({
                   {c.name} <span className="text-xs text-muted">· {c.layer}</span>
                 </span>
                 <div
-                  className="h-2 overflow-hidden rounded-full bg-surface-2"
+                  className="term-bar"
                   role="meter"
                   aria-label={`${c.name} mastery`}
                   aria-valuemin={0}

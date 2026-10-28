@@ -78,11 +78,14 @@ export function UploadPanel() {
           const file = event.dataTransfer.files[0];
           if (file && !busy) uploadZip(file);
         }}
-        className={`mt-3 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors ${
-          dragging ? "border-accent bg-accent/10" : "border-border hover:border-accent/60"
+        className={`mt-3 flex cursor-pointer flex-col items-center justify-center rounded-sm border border-dashed px-4 py-8 text-center transition-colors ${
+          dragging ? "border-ok bg-ok/10" : "border-border hover:border-ok/60 hover:bg-surface-2"
         }`}
       >
-        <p className="font-medium">Drop a project .zip here, or click to choose one</p>
+        <p aria-hidden className="mb-2 text-2xl text-comment">
+          {dragging ? "[ ↓ ]" : "[ .zip ]"}
+        </p>
+        <p className="font-medium text-bright">Drop a project .zip here, or click to choose one</p>
         <p id="dropzone-help" className="mt-1 text-sm text-muted">
           node_modules, build folders, binaries and media are skipped automatically.
         </p>
@@ -99,10 +102,13 @@ export function UploadPanel() {
         />
       </div>
 
-      <form onSubmit={importGithub} className="mt-4 flex gap-2">
+      <form onSubmit={importGithub} className="mt-4 flex items-center gap-2">
         <label htmlFor="github-url" className="sr-only">
           GitHub repository link
         </label>
+        <span aria-hidden className="hidden shrink-0 text-sm sm:inline">
+          <span className="text-ok">$</span> <span className="text-keyword">import</span>
+        </span>
         <input
           id="github-url"
           className="input"
@@ -128,6 +134,9 @@ export function UploadPanel() {
       </div>
 
       <p className="mt-2 text-xs text-muted">
+        <span aria-hidden className="text-comment">
+          {"# "}
+        </span>
         Your files stay on this computer. When the tutor works, excerpts of your code are sent to
         the Anthropic API (through your API key or your Claude login). Secrets such as API keys,
         tokens and .env values are removed before anything is stored or sent.

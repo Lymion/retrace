@@ -111,6 +111,11 @@ Or `npm run dev` while changing Retrace's own code (slower, reloads on save). Ei
 8. Try **Quiz** and **Audit** for the same level, and the **Remix challenge** from the project page.
 9. **Progress** shows your levels, concept mastery, quiz scores and your new-app checklist.
 
+**Getting around by command.** The bar at the bottom of the window is a command line. Press `:`
+(or Ctrl+K) from anywhere, type `help`, and try `ls`, `cd flask-notes`, `open`, `remix`, `cd ..`,
+`progress` or `settings`. Tab completes command and project names, and ↑/↓ recall earlier
+commands. Commands only move around the app; they never run code or change anything.
+
 The Flask sample (`samples/flask-notes.zip`) has no git history, so its roadmap comes from imports
 alone. To import from GitHub, paste a link like `https://github.com/owner/repo` (optionally
 `/tree/branch`). For private repos, add a fine-grained, read-only `GITHUB_TOKEN` to `.env`.

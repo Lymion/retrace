@@ -1,14 +1,10 @@
 import Link from "next/link";
+import { NavTabs } from "@/components/NavTabs";
 import { getSettings } from "@/server/settings";
 
-const NAV = [
-  { href: "/", label: "Projects" },
-  { href: "/progress", label: "Progress" },
-  { href: "/settings", label: "Settings" },
-];
+const PROVIDER_LABEL = { "api-key": "api-key", "claude-login": "claude-login" } as const;
 
-const PROVIDER_LABEL = { "api-key": "API key", "claude-login": "Claude login" } as const;
-
+/** The terminal window's title bar: window buttons, the app name and its tabs. */
 export function TopBar() {
   // Read on every request, so the indicator changes as soon as the learner switches.
   let active: keyof typeof PROVIDER_LABEL | null = null;
@@ -19,25 +15,30 @@ export function TopBar() {
   }
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-6 border-b border-border bg-surface px-4">
-      <Link href="/" className="font-semibold tracking-tight">
-        Retrace
+    <header className="flex h-10 shrink-0 items-center gap-3 border-b border-border bg-surface px-3 sm:gap-5">
+      <span aria-hidden className="hidden gap-1.5 sm:flex">
+        <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+        <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+        <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+      </span>
+      <Link href="/" className="glow shrink-0 text-sm font-bold text-ok">
+        <span aria-hidden className="text-keyword">
+          {"❯ "}
+        </span>
+        retrace
       </Link>
-      <nav aria-label="Main" className="flex gap-4 text-sm">
-        {NAV.map((item) => (
-          <Link key={item.href} href={item.href} className="text-muted hover:text-text">
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <NavTabs />
       {active && (
         <Link
           href="/settings#provider"
-          className="chip ml-auto hover:border-accent"
+          className="chip ml-auto shrink-0 hover:border-ok"
           title="The AI provider that answers the next request. Change it in Settings."
         >
-          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ok" />
-          AI: {PROVIDER_LABEL[active]}
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ok shadow-[0_0_6px_var(--ok)]" />
+          <span className="sr-only sm:not-sr-only">
+            <span className="hidden sm:inline">ai:</span>
+            {PROVIDER_LABEL[active]}
+          </span>
         </Link>
       )}
     </header>

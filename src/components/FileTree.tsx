@@ -19,6 +19,22 @@ interface Folder {
   files: { name: string; file: TreeFile }[];
 }
 
+// File names coloured by type, the way `ls --color` and editors do it.
+const TYPE_COLOR: [RegExp, string][] = [
+  [/^\.env|\.(pem|key)$/i, "text-danger"],
+  [/\.(tsx?|jsx?|mjs|cjs)$/i, "text-warn"],
+  [/\.(py|rb|go|rs|java|kt|swift|c|cc|cpp|h|hpp|cs|php)$/i, "text-cyan"],
+  [/\.(css|scss|sass|less)$/i, "text-keyword"],
+  [/\.(html?|vue|svelte|astro)$/i, "text-number"],
+  [/\.(json|ya?ml|toml|ini|lock|cfg)$/i, "text-ok"],
+  [/\.(md|mdx|txt|rst)$/i, "text-muted"],
+  [/\.(sql|sqlite|db|prisma)$/i, "text-pattern"],
+];
+
+function typeColor(name: string): string {
+  return TYPE_COLOR.find(([pattern]) => pattern.test(name))?.[1] ?? "text-text";
+}
+
 function buildTree(files: TreeFile[]): Folder {
   const root: Folder = { name: "", path: "", folders: new Map(), files: [] };
   for (const file of files) {
@@ -71,13 +87,16 @@ export function FileTree({
               <button
                 type="button"
                 onClick={() => toggle(child.path)}
-                className="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-sm text-muted hover:bg-surface-2"
+                className="flex w-full items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[13px] font-semibold text-accent hover:bg-surface-2"
                 style={{ paddingLeft: depth * 12 + 4 }}
               >
-                <span aria-hidden className="w-3 text-xs">
+                <span aria-hidden className="w-3 text-xs text-comment">
                   {open ? "▾" : "▸"}
                 </span>
                 {child.name}
+                <span aria-hidden className="text-comment">
+                  /
+                </span>
               </button>
               {open && renderFolder(child, depth + 1)}
             </li>
@@ -93,13 +112,20 @@ export function FileTree({
                 type="button"
                 onClick={() => onSelect(file)}
                 aria-current={selected ? "true" : undefined}
-                className={`flex w-full items-center gap-2 truncate rounded px-1 py-0.5 text-left font-mono text-[13px] ${
-                  selected ? "bg-accent-strong/25 text-text" : "hover:bg-surface-2"
+                className={`flex w-full items-center gap-1 truncate rounded-sm px-1 py-0.5 text-left font-mono text-[13px] ${
+                  selected ? "bg-ok/15" : "hover:bg-surface-2"
                 } ${file.dimmed ? "opacity-40" : ""}`}
-                style={{ paddingLeft: depth * 12 + 20 }}
+                style={{ paddingLeft: depth * 12 + 8 }}
                 title={file.path}
               >
-                <span className="truncate">{name}</span>
+                <span aria-hidden className="w-3 shrink-0 text-xs text-ok">
+                  {selected ? "❯" : ""}
+                </span>
+                <span
+                  className={`truncate ${selected ? "glow font-semibold text-bright" : typeColor(name)}`}
+                >
+                  {name}
+                </span>
                 {file.badge && (
                   <span className="ml-auto shrink-0 rounded bg-surface-2 px-1 text-[10px] text-muted">
                     {file.badge}

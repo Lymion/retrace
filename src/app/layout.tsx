@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { StatusBar } from "@/components/StatusBar";
 import { TopBar } from "@/components/TopBar";
 import "./globals.css";
 
@@ -26,6 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <main id="main" className="flex min-h-0 flex-1 flex-col">
           {children}
         </main>
+        <StatusBar />
       </body>
     </html>
   );

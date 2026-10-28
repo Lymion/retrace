@@ -3,6 +3,7 @@ import { and, count, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { learningEvents, levels, projects } from "@/db/schema";
 import { EmptyState } from "@/components/states";
+import { PageHeader } from "@/components/terminal";
 import { Checklist } from "@/features/progress/Checklist";
 import { ConceptMastery } from "@/features/progress/ConceptMastery";
 import { formatDate } from "@/lib/format";
@@ -53,13 +54,10 @@ export default function ProgressPage() {
       .get()?.n ?? 0;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
-      <header>
-        <h1 className="text-2xl font-semibold">Progress</h1>
-        <p className="mt-1 text-sm text-muted">
-          What you have built, what you have mastered, and what to practise next.
-        </p>
-      </header>
+    <div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-6">
+      <PageHeader path={[{ label: "progress" }]} title="Progress">
+        What you have built, what you have mastered, and what to practise next.
+      </PageHeader>
 
       <section aria-labelledby="levels-progress" className="card space-y-3 p-5">
         <h2 id="levels-progress" className="text-lg font-semibold">
@@ -82,7 +80,7 @@ export default function ProgressPage() {
                   </span>
                 </div>
                 <div
-                  className="mt-1 h-2 overflow-hidden rounded-full bg-surface-2"
+                  className="term-bar mt-1"
                   role="progressbar"
                   aria-label={`${p.name} levels done`}
                   aria-valuemin={0}
