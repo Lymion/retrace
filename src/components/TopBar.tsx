@@ -34,7 +34,7 @@ export function TopBar() {
           className="chip ml-auto shrink-0 hover:border-ok"
           title="The AI provider that answers the next request. Change it in Settings."
         >
-          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ok shadow-[0_0_6px_var(--ok)]" />
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ok" />
           <span className="sr-only sm:not-sr-only">
             <span className="hidden sm:inline">ai:</span>
             {PROVIDER_LABEL[active]}

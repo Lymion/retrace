@@ -168,7 +168,8 @@ Big decisions (stack changes, new services, cut features) are asked first.
 
 ### Terminal look
 
-- **The whole UI is monospace and styled like a terminal**: a title bar with tmux-style tabs, a
+- **The whole UI is monospace and styled like a terminal** on a neutral grey dark background (no
+  CRT effects): a title bar with tmux-style tabs, a
   prompt line that doubles as the breadcrumb, `[ bracket ]` buttons, `##` section headings, a
   braille spinner and block progress bars. Colours are the icon's syntax colours, and every text
   colour still meets WCAG AA on its background.
