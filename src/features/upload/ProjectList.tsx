@@ -3,26 +3,22 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { EmptyState, ErrorState } from "@/components/states";
+import { ErrorState } from "@/components/states";
+import { PromptLine } from "@/components/terminal";
 import { apiFetch, errorMessage } from "@/lib/api-client";
-import { formatDate } from "@/lib/format";
+import type { HomeProject } from "@/server/repo/home";
 
-export interface ProjectSummaryItem {
-  id: number;
-  name: string;
-  source: "zip" | "github";
-  sourceRef: string;
-  status: "ingesting" | "ready" | "failed";
-  fileCount: number | null;
-  createdAt: string;
-}
+// The projects as an `ls -l` listing. The hovered or focused row inverts, as
+// in a terminal menu. Each language takes a syntax colour, by position.
 
-export function ProjectList({ projects }: { projects: ProjectSummaryItem[] }) {
+const LANGUAGE_TONES = ["text-ok", "text-number", "text-cyan"];
+
+export function ProjectList({ projects }: { projects: HomeProject[] }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  async function remove(project: ProjectSummaryItem) {
+  async function remove(project: HomeProject) {
     if (!window.confirm(`Delete "${project.name}" and everything learned from it?`)) return;
     setDeleting(project.id);
     setError(null);
@@ -38,54 +34,63 @@ export function ProjectList({ projects }: { projects: ProjectSummaryItem[] }) {
 
   return (
     <section aria-labelledby="projects-heading">
-      <h2 id="projects-heading" className="text-lg font-semibold">
+      <PromptLine command="ls" flags="-l projects/" />
+      <h2 id="projects-heading" className="sr-only">
         Your projects
       </h2>
       {error && (
-        <div className="mt-3">
+        <div className="mt-2">
           <ErrorState message={error} />
         </div>
       )}
-      {projects.length === 0 ? (
-        <div className="mt-3">
-          <EmptyState title="No projects yet">
-            Upload a zip or paste a GitHub link to start. Try one of the samples in the{" "}
-            <code>samples/</code> folder first.
-          </EmptyState>
-        </div>
-      ) : (
-        <ul className="mt-3 divide-y divide-border rounded-sm border border-border bg-surface">
-          {projects.map((project) => (
-            <li
-              key={project.id}
-              className="group flex items-center gap-3 px-3 py-2.5 hover:bg-surface-2"
-            >
-              <span aria-hidden className="w-[4ch] shrink-0 text-right text-xs text-comment">
-                {project.id}
-              </span>
-              <div className="min-w-0 flex-1">
-                <Link
-                  href={`/projects/${project.id}`}
-                  className="font-semibold text-accent group-hover:glow hover:underline"
-                >
-                  {project.name}
-                  <span aria-hidden className="text-comment">
-                    /
-                  </span>
-                </Link>
-                <p className="truncate text-xs text-muted">
-                  {project.source === "github" ? "GitHub" : "Zip"} · {project.sourceRef} ·{" "}
-                  {project.fileCount ?? 0} files · {formatDate(project.createdAt)}
-                </p>
-              </div>
-              {project.status !== "ready" && (
-                <span className={`chip ${project.status === "failed" ? "text-danger" : ""}`}>
-                  {project.status}
+      <p aria-hidden className="mt-1 px-1.5 text-xs text-comment">
+        total {projects.length}
+      </p>
+      <ul className="flex flex-col">
+        {projects.map((project) => {
+          const counted = project.levels.filter((l) => !l.skipped);
+          const done = counted.filter((l) => l.status === "done").length;
+          const share = counted.length ? Math.round((done / counted.length) * 100) : 0;
+          return (
+            <li key={project.id} className="group flex items-center">
+              <Link
+                href={`/projects/${project.id}`}
+                className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_5ch] items-center gap-3.5 px-1.5 py-1 whitespace-nowrap hover:bg-accent hover:text-bg focus-visible:bg-accent focus-visible:text-bg sm:grid-cols-[5ch_minmax(0,1fr)_minmax(0,1.25fr)_96px_5ch] [&:hover_*]:text-bg [&:focus-visible_*]:text-bg"
+              >
+                <span aria-hidden className="hidden text-comment sm:block">
+                  drwx
                 </span>
-              )}
+                <span className="truncate font-semibold text-accent">
+                  {project.name}
+                  <span aria-hidden>/</span>
+                </span>
+                <span className="hidden truncate text-muted sm:block">
+                  {project.status !== "ready" ? (
+                    <span className={project.status === "failed" ? "text-danger" : "text-warn"}>
+                      {project.status}
+                    </span>
+                  ) : (
+                    <>
+                      {project.languages.map((language, i) => (
+                        <span key={language} className={LANGUAGE_TONES[i]}>
+                          {language}{" "}
+                        </span>
+                      ))}
+                      · {project.fileCount} files
+                    </>
+                  )}
+                </span>
+                <span aria-hidden className="term-bar hidden sm:block group-hover:bg-bg">
+                  <span className="bar-fill block" style={{ width: `${share}%` }} />
+                </span>
+                <span className="text-right text-muted">
+                  <span className="sr-only">levels done: </span>
+                  {counted.length ? `${done}/${counted.length}` : "–"}
+                </span>
+              </Link>
               <button
                 type="button"
-                className="btn btn-ghost text-muted hover:text-danger"
+                className="btn btn-ghost ml-1 text-comment hover:text-danger"
                 onClick={() => remove(project)}
                 disabled={deleting === project.id}
                 aria-label={`Delete ${project.name}`}
@@ -94,9 +99,9 @@ export function ProjectList({ projects }: { projects: ProjectSummaryItem[] }) {
                 rm
               </button>
             </li>
-          ))}
-        </ul>
-      )}
+          );
+        })}
+      </ul>
     </section>
   );
 }

@@ -38,3 +38,12 @@ export const USAGE_EVENT = "retrace:usage";
 export function announceUsage(): void {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(USAGE_EVENT));
 }
+
+/**
+ * A rough cost for a lesson, before it is written: the level's code (at most
+ * the 800 lines sent in full), plus the prompt and fact sheet, plus the reply.
+ * Shown with a "~" because the real number depends on the model.
+ */
+export function estimateLessonTokens(levelLines: number): number {
+  return Math.min(levelLines, 800) * 10 + 3000 + 2500;
+}

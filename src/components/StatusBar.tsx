@@ -21,6 +21,23 @@ import {
 // The status line at the bottom of the window, like vim's or tmux's, with a
 // command line: press ":" anywhere (or click it) and type "help".
 
+/** Announced by a screen to name where the learner is in the status line. */
+export const PLACE_EVENT = "retrace:place";
+
+export function announcePlace(label: string) {
+  window.dispatchEvent(new CustomEvent(PLACE_EVENT, { detail: label }));
+}
+
+function placeFor(pathname: string): string {
+  if (pathname === "/") return "home";
+  if (pathname.endsWith("/workspace")) return "workspace";
+  if (pathname.endsWith("/challenge")) return "remix";
+  if (pathname.startsWith("/projects/")) return "project";
+  return pathname.slice(1).split("/")[0] ?? "home";
+}
+
+const VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0";
+
 const TONE: Record<NonNullable<OutputLine["tone"]>, string> = {
   muted: "text-muted",
   ok: "text-ok",
@@ -57,13 +74,23 @@ export function StatusBar() {
   // Names for the path and for Tab completion. Refreshed on every screen
   // change, and a failed refresh keeps the last list.
   const [projects, setProjects] = useState<CommandProject[]>([]);
+  // Where the learner is, e.g. "level 3". The workspace announces its level.
+  const [place, setPlace] = useState<{ path: string; label: string } | null>(null);
+  useEffect(() => {
+    const onPlace = (event: Event) =>
+      setPlace({ path: window.location.pathname, label: (event as CustomEvent<string>).detail });
+    window.addEventListener(PLACE_EVENT, onPlace);
+    return () => window.removeEventListener(PLACE_EVENT, onPlace);
+  }, []);
+  const placeLabel = place && place.path === pathname ? place.label : placeFor(pathname);
+
   // The server renders no time, so the first client render matches it.
   const time = useSyncExternalStore(subscribeClock, readClock, () => "");
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      const shortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k";
-      if (!shortcut && (event.key !== ":" || isTyping(event.target))) return;
+      // Ctrl K opens the command list (CommandPalette); ":" opens this line.
+      if (event.key !== ":" || isTyping(event.target)) return;
       event.preventDefault();
       inputRef.current?.focus();
     }
@@ -166,19 +193,46 @@ export function StatusBar() {
           </div>
         </div>
       )}
-      <div className="flex h-7 items-center border-t border-border bg-surface">
+      <div
+        aria-hidden
+        className="hidden gap-x-4 border-t border-border bg-bg px-3 py-0.5 text-comment md:flex"
+      >
+        {pathname.endsWith("/workspace") && (
+          <>
+            <span>
+              <b className="font-normal text-number">j/k</b> level
+            </span>
+            <span>
+              <b className="font-normal text-number">1-4</b> step
+            </span>
+          </>
+        )}
+        <span>
+          <b className="font-normal text-number">ctrl+k</b> run
+        </span>
+        <span>
+          <b className="font-normal text-number">:</b> command line
+        </span>
+        <span>
+          <b className="font-normal text-number">esc</b> close
+        </span>
+      </div>
+      <div className="flex h-7 items-stretch overflow-hidden border-t border-border bg-surface whitespace-nowrap">
         <span
-          className={`flex h-full shrink-0 items-center px-2 font-bold ${
-            focused ? "bg-ok text-bg" : "bg-accent text-bg"
+          className={`flex shrink-0 items-center px-2 font-bold text-bg ${
+            focused ? "bg-number" : "bg-accent"
           }`}
         >
           {focused ? "COMMAND" : "NORMAL"}
         </span>
-        <span className="hidden max-w-[40%] shrink-0 truncate px-3 text-accent sm:block">
+        <span className="hidden shrink-0 items-center bg-surface-2 px-3 text-keyword sm:flex">
+          {placeLabel}
+        </span>
+        <span className="hidden max-w-[30%] shrink-0 items-center truncate px-3 text-cyan lg:flex">
           {shellPath(pathname, projects)}
         </span>
-        <label className="flex h-full min-w-0 flex-1 items-center gap-1.5 border-l border-border px-2">
-          <span aria-hidden className="text-ok">
+        <label className="flex min-w-0 flex-1 items-center gap-1.5 border-l border-border px-2">
+          <span aria-hidden className="text-number">
             {focused ? "❯" : ":"}
           </span>
           <span className="sr-only">Command</span>
@@ -195,25 +249,24 @@ export function StatusBar() {
             autoCapitalize="off"
             maxLength={200}
             className="cmd-input h-full min-w-0 flex-1 bg-transparent text-text placeholder:text-comment focus:outline-none"
-            style={{ caretColor: "var(--ok)" }}
+            style={{ caretColor: "var(--number)" }}
           />
         </label>
         {usage && (
           <span
-            className="hidden shrink-0 border-l border-border px-3 text-comment sm:block"
+            className="hidden shrink-0 items-center bg-surface-2 px-3 text-muted sm:flex"
             title={`Tokens used today across ${usage.today.calls} AI calls. Details in Settings.`}
           >
-            <span className="text-number">{formatTokens(totalTokens(usage.today))}</span> tok today
-            {usage.today.calls > 0 && <> · {cachedShare(usage.today)}% cached</>}
+            <span className="text-number">{formatTokens(totalTokens(usage.today))}</span>
+            &nbsp;tok today
+            {usage.today.calls > 0 && <>&nbsp;· {cachedShare(usage.today)}% cached</>}
           </span>
         )}
-        <span className="hidden shrink-0 border-l border-border px-3 text-comment md:block">
-          utf-8 · retrace 0.1.0
+        <span className="flex shrink-0 items-center bg-number px-2.5 font-bold text-bg">
+          v{VERSION}
         </span>
         {time && (
-          <span className="shrink-0 border-l border-border bg-surface-2 px-3 text-keyword">
-            {time}
-          </span>
+          <span className="hidden shrink-0 items-center px-3 text-keyword sm:flex">{time}</span>
         )}
       </div>
     </footer>

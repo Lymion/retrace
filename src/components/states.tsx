@@ -66,3 +66,21 @@ export function ErrorState({
     </div>
   );
 }
+
+/** A loading placeholder drawn as block bars, the same cells as progress bars. */
+export function SkeletonBars({ rows = 3, label = "Loading" }: { rows?: number; label?: string }) {
+  const widths = ["86%", "64%", "72%", "48%", "80%"];
+  return (
+    <div role="status" className="space-y-2 py-1">
+      <span className="sr-only">{label}</span>
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          key={i}
+          aria-hidden
+          className="term-bar"
+          style={{ width: widths[i % widths.length] }}
+        />
+      ))}
+    </div>
+  );
+}

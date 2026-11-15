@@ -71,10 +71,10 @@ function ico(images, sizes) {
 
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 
-const TOP = hex("#1d2433"); // tile background, top of the gradient
-const BOTTOM = hex("#090c12"); // and bottom
-const EDGE = hex("#3a4250"); // thin tile border
-const RULE = hex("#2a3140"); // line under the title bar
+const TOP = hex("#1d212c"); // tile background, top of the gradient (--surface-2)
+const BOTTOM = hex("#0a0c11"); // and bottom (the code background)
+const EDGE = hex("#3b4252"); // thin tile border (--rule)
+const RULE = hex("#2a2f3c"); // line under the title bar (--border)
 
 function roundedSquare(x, y, inset, radius) {
   const lo = inset + radius;
@@ -99,9 +99,9 @@ const LINE = 0.029; // half the thickness of a code line
 /** The glowing parts, drawn in order: [distance(x, y), colour, glow strength]. */
 const SHAPES = [
   // window controls
-  [(x, y) => Math.hypot(x - 0.215, y - 0.2) - 0.033, hex("#ff5f57"), 0.35],
-  [(x, y) => Math.hypot(x - 0.3, y - 0.2) - 0.033, hex("#febc2e"), 0.35],
-  [(x, y) => Math.hypot(x - 0.385, y - 0.2) - 0.033, hex("#28c840"), 0.35],
+  [(x, y) => Math.hypot(x - 0.215, y - 0.2) - 0.033, hex("#d2a8ff"), 0.35],
+  [(x, y) => Math.hypot(x - 0.3, y - 0.2) - 0.033, hex("#79c0ff"), 0.35],
+  [(x, y) => Math.hypot(x - 0.385, y - 0.2) - 0.033, hex("#56d4dd"), 0.35],
   // code: keyword, name / indented call, string / indented value / keyword + cursor
   [(x, y) => capsule(x, y, 0.2, 0.31, 0.4, LINE), hex("#d2a8ff"), 0.9],
   [(x, y) => capsule(x, y, 0.37, 0.62, 0.4, LINE), hex("#79c0ff"), 0.9],

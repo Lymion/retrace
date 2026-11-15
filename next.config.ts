@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import pkg from "./package.json" with { type: "json" };
 
 // Headers that apply to every response, API routes included. The page CSP
 // (with a per-request nonce) is set in src/proxy.ts.
@@ -19,6 +20,8 @@ const nextConfig: NextConfig = {
     "@anthropic-ai/claude-agent-sdk",
   ],
   poweredByHeader: false,
+  // The running version, shown in the status line and Settings.
+  env: { NEXT_PUBLIC_APP_VERSION: pkg.version },
   turbopack: {
     rules: {
       "*.css": {

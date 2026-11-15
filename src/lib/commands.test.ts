@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { complete, findProject, runCommand, shellPath } from "./commands";
+import {
+  complete,
+  filterEntries,
+  findProject,
+  paletteEntries,
+  runCommand,
+  shellPath,
+} from "./commands";
 
 const projects = [
   { id: 4, name: "todo-express-react", fileCount: 23, source: "zip" },
@@ -102,5 +109,36 @@ describe("complete", () => {
 
   it("leaves arguments alone for commands that take none", () => {
     expect(complete("ls fl", projects)).toEqual({ value: "ls fl", options: [] });
+  });
+});
+
+describe("command list (Ctrl K)", () => {
+  const projects = [
+    { id: 4, name: "todo-express-react" },
+    { id: 5, name: "flask-notes" },
+  ];
+
+  it("offers the screens and every project's pages, current project first", () => {
+    const entries = paletteEntries("/projects/5", projects);
+    expect(entries[0]).toEqual({
+      label: "open flask-notes",
+      hint: "workspace · this project",
+      input: "open 5",
+    });
+    expect(entries.map((e) => e.label)).toContain("open todo-express-react");
+    expect(entries.filter((e) => e.label === "open flask-notes")).toHaveLength(1);
+    // Every entry is a real command that goes somewhere.
+    for (const entry of entries) {
+      const result = runCommand(entry.input, { pathname: "/projects/5", projects });
+      expect(result.navigate !== undefined || result.back).toBe(true);
+    }
+  });
+
+  it("filters by every typed word, labels that start with the first word first", () => {
+    const entries = paletteEntries("/", projects);
+    expect(filterEntries(entries, "").length).toBe(entries.length);
+    expect(filterEntries(entries, "open flask").map((e) => e.input)).toEqual(["open 5"]);
+    expect(filterEntries(entries, "set")[0]!.label).toBe("settings");
+    expect(filterEntries(entries, "zzz")).toEqual([]);
   });
 });

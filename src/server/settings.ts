@@ -22,6 +22,8 @@ export const SettingsSchema = z.object({
   activeProvider: z.enum(PROVIDER_IDS),
   /** When on, every task runs on the fast model. Cheaper, a little less thorough. */
   economyMode: z.boolean(),
+  /** Lesson and tutor text in monospace (the terminal look) or a sans font, easier for long reading. */
+  lessonFont: z.enum(["mono", "sans"]),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -40,6 +42,7 @@ export function defaultSettings(): Settings {
     // With a key in .env the API is the obvious choice; otherwise use the login.
     activeProvider: env.ANTHROPIC_API_KEY ? "api-key" : "claude-login",
     economyMode: false,
+    lessonFont: "mono",
   };
 }
 

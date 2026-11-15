@@ -1,19 +1,25 @@
 @import "tailwindcss";
 
-/* Design tokens: a neutral grey dark mode with terminal-style syntax
-   colours. Text colours keep WCAG AA contrast or better against every
-   surface; --comment is the dimmest text colour that still passes, and
-   anything dimmer is decoration only. The syntax colours match the app
-   icon (scripts/make-icon.mjs). */
+/* Design tokens: a deep ink blue-black with terminal syntax colours.
+   Every text colour keeps at least 4.5:1 contrast on every surface it sits
+   on (checked: the lowest pair is --comment on --surface-2 at 5.1:1).
+   --rule is for pane borders only, never text. The syntax colours match the
+   app icon (scripts/make-icon.mjs) and the Monaco theme in CodeViewer.tsx.
+
+   Colour by role: each pane, tab and step sets --c to its own syntax
+   colour; primary buttons and focused pane borders use --c. Green is kept
+   for "done" marks and the tutor. */
 :root {
-  --bg: #1e1e1e;
-  --surface: #252526;
-  --surface-2: #2d2d2e;
-  --border: #3c3c3c;
-  --text: #d4d4d4;
-  --bright: #f3f3f3;
-  --muted: #ababab;
-  --comment: #969696;
+  --bg: #0f1117;
+  --surface: #151821;
+  --surface-2: #1d212c;
+  --border: #2a2f3c;
+  --rule: #3b4252;
+  --code-bg: #0a0c11;
+  --text: #d0d5de;
+  --bright: #f2f4f8;
+  --muted: #a7aebb;
+  --comment: #8a92a2;
   --accent: #79c0ff;
   --accent-strong: #388bfd;
   --ok: #7ee787;
@@ -26,10 +32,20 @@
   --security: #ff7b72;
   --pattern: #d2a8ff;
   --gotcha: #e3b341;
-  /* Top bar + status bar, for screens that fill the window. */
-  --chrome: 4.25rem;
+  /* The role colour; panes and tabs override it. */
+  --c: var(--accent);
+  /* The one easing curve: a strong ease-out. */
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Lesson and tutor text: monospace by default, sans when chosen in Settings. */
+  --prose: var(--font-mono);
+  /* Top bar, key hints and status bar, for screens that fill the window. */
+  --chrome: 5.75rem;
   color-scheme: dark;
-  accent-color: var(--ok);
+  accent-color: var(--accent);
+}
+
+:root[data-prose="sans"] {
+  --prose: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 @theme inline {
@@ -49,6 +65,9 @@
   --color-keyword: var(--keyword);
   --color-number: var(--number);
   --color-cyan: var(--cyan);
+  --color-rule: var(--rule);
+  --color-code-bg: var(--code-bg);
+  --color-role: var(--c);
   --color-concept: var(--concept);
   --color-security: var(--security);
   --color-pattern: var(--pattern);
@@ -62,12 +81,14 @@
 }
 
 /* Square-ish corners, like a terminal window. */
+/* Square corners throughout, like a terminal. */
 @theme {
-  --radius-xs: 1px;
-  --radius-sm: 2px;
-  --radius-md: 2px;
-  --radius-lg: 3px;
-  --radius-xl: 4px;
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
 }
 
 html,
@@ -78,11 +99,12 @@ body {
 }
 
 body {
+  font-size: 14px;
   line-height: 1.55;
 }
 
 ::selection {
-  background: rgba(126, 231, 135, 0.28);
+  background: rgba(121, 192, 255, 0.28);
   color: var(--bright);
 }
 
@@ -93,9 +115,14 @@ body {
 
 @layer components {
   /* Buttons read like a TUI: [ label ]. The brackets are decoration, so
-     screen readers skip them ("/ ''" is the alternative text). */
+     screen readers skip them ("/ ''" is the alternative text). A press
+     scales the button a little, so it feels like it heard the click. */
   .btn {
-    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-transparent bg-transparent px-1.5 py-1 text-sm text-text hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 border border-transparent bg-transparent px-1.5 py-1 text-sm whitespace-nowrap text-text hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50;
+    transition: transform 140ms var(--ease);
+  }
+  .btn:not(:disabled):active {
+    transform: scale(0.97);
   }
   .btn::before,
   .btn::after {
@@ -111,19 +138,22 @@ body {
   }
   .btn:not(:disabled):hover::before,
   .btn:not(:disabled):hover::after {
-    color: var(--ok);
+    color: var(--c);
   }
+  /* The primary button takes the colour of the pane it sits in (--c). */
   .btn-primary {
-    @apply font-semibold text-ok;
-    text-shadow: 0 0 8px rgba(126, 231, 135, 0.35);
+    @apply font-semibold;
+    color: var(--c);
+    text-shadow: 0 0 8px color-mix(in srgb, var(--c) 40%, transparent);
   }
   .btn-primary::before,
   .btn-primary::after {
-    color: var(--ok);
+    color: var(--c);
   }
   /* Selected-item style: the whole button inverts, as in a terminal menu. */
   .btn-primary:not(:disabled):hover {
-    @apply bg-ok text-bg;
+    background: var(--c);
+    color: var(--bg);
     text-shadow: none;
   }
   .btn-primary:not(:disabled):hover::before,
@@ -138,20 +168,141 @@ body {
     content: none;
   }
   .input {
-    @apply w-full rounded-sm border border-border bg-bg px-3 py-1.5 text-sm text-text placeholder:text-comment focus:border-ok focus:outline-none;
-    caret-color: var(--ok);
+    @apply w-full border border-border bg-bg px-3 py-1.5 text-sm text-text placeholder:text-comment focus:outline-none;
+    caret-color: var(--c);
     caret-shape: block;
   }
+  .input:focus {
+    border-color: var(--c);
+  }
+  /* A plain box, for settings and lists inside panes. */
   .card {
-    @apply rounded-sm border border-border bg-surface;
+    @apply border border-border bg-surface;
   }
   .chip {
-    @apply inline-flex items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 py-0 text-xs text-muted;
+    @apply inline-flex items-center gap-1 border border-border bg-surface-2 px-1.5 py-0 text-xs text-muted;
+  }
+
+  /* A pane: a box with its title set into the top border, like a TUI
+     window. Set --pane-bg when the pane sits on something other than --bg,
+     so the gap behind the title matches. */
+  .pane {
+    --pane-bg: var(--bg);
+    position: relative;
+    min-width: 0;
+    border: 1px solid var(--rule);
+    padding: 1.1rem 1rem 0.9rem;
+  }
+  .pane-on,
+  .pane:focus-within {
+    border-color: var(--c);
+  }
+  .pane-title,
+  .pane-note {
+    position: absolute;
+    top: -0.8em;
+    max-width: calc(100% - 2rem);
+    overflow: hidden;
+    padding: 0 0.4rem;
+    background: var(--pane-bg);
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .pane-title {
+    left: 0.6rem;
+    margin: 0;
+    color: var(--c);
+    font-weight: 600;
+  }
+  .pane-title::before {
+    content: "┤ ";
+    content: "┤ " / "";
+    color: var(--rule);
+    font-weight: 400;
+  }
+  .pane-title::after {
+    content: " ├";
+    content: " ├" / "";
+    color: var(--rule);
+    font-weight: 400;
+  }
+  .pane-note {
+    right: 0.6rem;
+    color: var(--comment);
+  }
+
+  /* A screen or step tab: the active one inverts in its own colour. */
+  .tab {
+    @apply px-2 py-0.5 whitespace-nowrap text-muted;
+  }
+  .tab:hover {
+    color: var(--c);
+  }
+  .tab[aria-current="page"],
+  .tab[aria-selected="true"] {
+    background: var(--c);
+    color: var(--bg);
+    font-weight: 700;
+  }
+  .tab[aria-current="page"]::after,
+  .tab[aria-selected="true"]::after {
+    content: "*";
+    content: "*" / "";
+  }
+
+  /* Keyboard keys in hints: Ctrl K. */
+  .kbd {
+    @apply border border-border px-1 text-xs text-muted;
+    font-family: inherit;
   }
 }
 
+/* Role colours: put one on a pane, tab or step to set its --c. */
+.c-accent {
+  --c: var(--accent);
+}
+.c-keyword {
+  --c: var(--keyword);
+}
+.c-number {
+  --c: var(--number);
+}
+.c-cyan {
+  --c: var(--cyan);
+}
+.c-warn {
+  --c: var(--warn);
+}
+.c-danger {
+  --c: var(--danger);
+}
+.c-ok {
+  --c: var(--ok);
+}
+
+/* Gradient text, for the app name and the logo. */
+.gradient-text {
+  background: linear-gradient(
+    100deg,
+    var(--keyword),
+    var(--accent) 35%,
+    var(--cyan) 55%,
+    var(--ok) 75%,
+    var(--number)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.pane-title::before {
+  font-size: inherit;
+}
+
 /* Section headings read like markdown in a terminal: "## Level map". */
-h2::before {
+h2:not(.pane-title)::before {
   content: "## ";
   content: "## " / "";
   color: var(--keyword);
@@ -171,7 +322,7 @@ h2::before {
   height: 1.15em;
   margin-left: 0.35em;
   vertical-align: text-bottom;
-  background: var(--ok);
+  background: var(--number);
   animation: cursor-blink 1.1s steps(1) infinite;
 }
 
@@ -225,26 +376,36 @@ h2::before {
 }
 
 /* Progress bars drawn as blocks: ▮▮▮▮▯▯. The mask cuts the track and its
-   fill into cells, so any bar markup inside it stays the same. */
+   fill into cells. The fill (.bar-fill) runs purple → blue → cyan → green;
+   .bar-weak runs red → yellow, for concepts that need work. */
 .term-bar {
   height: 0.7rem;
   background: var(--border);
   -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 9px);
   mask-image: repeating-linear-gradient(90deg, #000 0 7px, transparent 7px 9px);
 }
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--keyword), var(--accent) 45%, var(--cyan) 75%, var(--ok));
+}
+.bar-weak {
+  height: 100%;
+  background: linear-gradient(90deg, var(--danger), var(--warn));
+}
 
-/* The ASCII-art title on the home screen. */
+/* The block-letter logo on the home screen. */
 .banner {
-  background: linear-gradient(
-    90deg,
-    var(--keyword),
-    var(--accent) 40%,
-    var(--ok) 70%,
-    var(--number)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  width: max-content;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.2;
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 25%, transparent));
+}
+@media (max-width: 640px) {
+  .banner {
+    font-size: min(13px, 2.4vw);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -252,19 +413,30 @@ h2::before {
   .spinner::before {
     animation: none;
   }
+  .btn {
+    transition: none;
+  }
+  .btn:not(:disabled):active {
+    transform: none;
+  }
 }
 
 /* Visible keyboard focus everywhere, never removed. */
 :focus-visible {
-  outline: 2px solid var(--ok);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 /* Markdown from the tutor, styled like a terminal markdown viewer. Raw HTML
    is never rendered, so only these elements can appear. */
 .prose-tutor {
-  line-height: 1.65;
+  font-family: var(--prose);
+  line-height: 1.7;
+  max-width: 68ch;
   overflow-wrap: anywhere;
+}
+:root[data-prose="sans"] .prose-tutor {
+  font-size: 15px;
 }
 .prose-tutor h1,
 .prose-tutor h2,
@@ -329,7 +501,8 @@ h2::before {
   padding: 0.1em 0.35em;
 }
 .prose-tutor pre {
-  background: var(--bg);
+  font-family: var(--font-mono);
+  background: var(--code-bg);
   border: 1px solid var(--border);
   border-left: 2px solid var(--keyword);
   border-radius: 2px;
@@ -439,4 +612,19 @@ h2::before {
 /* The status-bar command line shows focus with its COMMAND badge instead. */
 .cmd-input:focus-visible {
   outline: none;
+}
+
+/* Desktop app title bar: the bar drags the window; its controls do not.
+   The right padding keeps clear of the Windows buttons (window-controls
+   overlay). In a browser these do nothing. */
+.app-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.app-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+.titlebar {
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
 }

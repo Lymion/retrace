@@ -14,6 +14,7 @@ export interface SettingsValues {
   maxUploadMb: number;
   maxFiles: number;
   economyMode: boolean;
+  lessonFont: "mono" | "sans";
 }
 
 export function SettingsForm({ initial }: { initial: SettingsValues }) {
@@ -80,6 +81,21 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
             <option value="beginner">Beginner</option>
             <option value="intermediate">Intermediate</option>
             <option value="advanced">Advanced</option>
+          </select>
+        </Field>
+        <Field
+          label="Lesson text"
+          htmlFor="lessonFont"
+          hint="Sans is easier for long reading; code stays monospace."
+        >
+          <select
+            id="lessonFont"
+            className="input"
+            value={values.lessonFont}
+            onChange={(e) => set("lessonFont", e.target.value as SettingsValues["lessonFont"])}
+          >
+            <option value="mono">Monospace (terminal)</option>
+            <option value="sans">Sans</option>
           </select>
         </Field>
         <Field label="Tutor reply language" htmlFor="replyLanguage">

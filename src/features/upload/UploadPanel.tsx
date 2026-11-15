@@ -8,7 +8,8 @@ import { apiFetch, errorMessage, postJson } from "@/lib/api-client";
 type Status =
   { kind: "idle" } | { kind: "busy"; label: string } | { kind: "error"; message: string };
 
-export function UploadPanel() {
+/** Adding a project: a zip (click or drop anywhere on the pane) or a GitHub link. */
+export function UploadPanel({ focal = false }: { focal?: boolean }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -50,45 +51,39 @@ export function UploadPanel() {
   }
 
   return (
-    <section aria-labelledby="add-project" className="card p-5">
-      <h2 id="add-project" className="text-lg font-semibold">
-        Add a project
+    <section
+      aria-labelledby="add-project"
+      onDragOver={(event) => {
+        event.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        const file = event.dataTransfer.files[0];
+        if (file && !busy) uploadZip(file);
+      }}
+      className={`pane c-cyan ${focal || dragging ? "pane-on" : ""}`}
+    >
+      <h2 id="add-project" className="pane-title">
+        add a project
       </h2>
-
-      <div
-        role="button"
-        tabIndex={0}
-        aria-disabled={busy}
-        aria-describedby="dropzone-help"
-        onClick={() => !busy && inputRef.current?.click()}
-        onKeyDown={(event) => {
-          if ((event.key === "Enter" || event.key === " ") && !busy) {
-            event.preventDefault();
-            inputRef.current?.click();
-          }
-        }}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragging(false);
-          const file = event.dataTransfer.files[0];
-          if (file && !busy) uploadZip(file);
-        }}
-        className={`mt-3 flex cursor-pointer flex-col items-center justify-center rounded-sm border border-dashed px-4 py-8 text-center transition-colors ${
-          dragging ? "border-ok bg-ok/10" : "border-border hover:border-ok/60 hover:bg-surface-2"
-        }`}
-      >
-        <p aria-hidden className="mb-2 text-2xl text-comment">
-          {dragging ? "[ ↓ ]" : "[ .zip ]"}
+      {focal && (
+        <p className="mb-3 text-[17px] font-semibold text-bright">
+          Start with a project you already finished.
         </p>
-        <p className="font-medium text-bright">Drop a project .zip here, or click to choose one</p>
-        <p id="dropzone-help" className="mt-1 text-sm text-muted">
-          node_modules, build folders, binaries and media are skipped automatically.
-        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <button
+          type="button"
+          className={`btn ${focal ? "btn-primary" : ""}`}
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+          aria-describedby="dropzone-help"
+        >
+          {dragging ? "drop the zip" : "choose a zip"}
+        </button>
         <input
           ref={inputRef}
           type="file"
@@ -100,46 +95,47 @@ export function UploadPanel() {
             event.target.value = "";
           }}
         />
+        <span className="text-comment">or</span>
+        <form onSubmit={importGithub} className="flex min-w-0 flex-[1_1_260px] items-center gap-2">
+          <label className="flex min-w-0 flex-1 items-center gap-2 border-b border-rule px-0.5 py-1 focus-within:border-cyan">
+            <span aria-hidden className="shrink-0 text-keyword">
+              url ❯
+            </span>
+            <span className="sr-only">GitHub repository link</span>
+            <input
+              id="github-url"
+              className="min-w-0 flex-1 bg-transparent text-text placeholder:text-comment focus:outline-none"
+              style={{ caretColor: "var(--cyan)" }}
+              placeholder="https://github.com/owner/repo"
+              value={githubUrl}
+              onChange={(event) => setGithubUrl(event.target.value)}
+              disabled={busy}
+              inputMode="url"
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
+          <button type="submit" className="btn shrink-0" disabled={busy || !githubUrl.trim()}>
+            fetch
+          </button>
+        </form>
       </div>
 
-      <form onSubmit={importGithub} className="mt-4 flex items-center gap-2">
-        <label htmlFor="github-url" className="sr-only">
-          GitHub repository link
-        </label>
-        <span aria-hidden className="hidden shrink-0 text-sm sm:inline">
-          <span className="text-ok">$</span> <span className="text-keyword">import</span>
-        </span>
-        <input
-          id="github-url"
-          className="input"
-          placeholder="https://github.com/owner/repo"
-          value={githubUrl}
-          onChange={(event) => setGithubUrl(event.target.value)}
-          disabled={busy}
-          inputMode="url"
-          autoComplete="off"
-        />
-        <button
-          type="submit"
-          className="btn btn-primary shrink-0"
-          disabled={busy || !githubUrl.trim()}
-        >
-          Import
-        </button>
-      </form>
-
-      <div className="mt-3 min-h-6" aria-live="polite">
+      <div className="mt-2 min-h-6" aria-live="polite">
         {status.kind === "busy" && <Spinner label={status.label} />}
         {status.kind === "error" && <ErrorState message={status.message} />}
       </div>
 
-      <p className="mt-2 text-xs text-muted">
-        <span aria-hidden className="text-comment">
-          {"# "}
-        </span>
-        Your files stay on this computer. When the tutor works, excerpts of your code are sent to
-        the Anthropic API (through your API key or your Claude login). Secrets such as API keys,
-        tokens and .env values are removed before anything is stored or sent.
+      <p id="dropzone-help" className="text-xs text-comment">
+        <span aria-hidden>{"// "}</span>
+        You can also drop a .zip on this box. node_modules, build folders, binaries and media are
+        skipped.
+      </p>
+      <p className="mt-1 text-xs text-comment">
+        <span aria-hidden>{"// "}</span>
+        Your files stay on this computer. Secrets such as API keys, tokens and .env values are
+        removed before anything is stored or sent. When the tutor works, excerpts of your code go to
+        the Anthropic API (through your API key or your Claude login).
       </p>
     </section>
   );

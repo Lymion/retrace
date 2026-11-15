@@ -219,3 +219,62 @@ export function complete(
     options: names.length > 1 ? names : [],
   };
 }
+
+/** One row of the Ctrl K command list. Running it runs `input` on the command line. */
+export interface PaletteEntry {
+  label: string;
+  hint: string;
+  input: string;
+}
+
+/** Everything the command list offers: the screens, then each project's pages. */
+export function paletteEntries(pathname: string, projects: CommandProject[]): PaletteEntry[] {
+  const here = projectIdIn(pathname);
+  const current = here === null ? undefined : projects.find((p) => p.id === here);
+  const entries: PaletteEntry[] = [];
+  if (current) {
+    entries.push(
+      {
+        label: `open ${current.name}`,
+        hint: "workspace · this project",
+        input: `open ${current.id}`,
+      },
+      {
+        label: `remix ${current.name}`,
+        hint: "challenge · this project",
+        input: `remix ${current.id}`,
+      },
+    );
+  }
+  entries.push(
+    { label: "projects", hint: "home", input: "cd ~" },
+    { label: "progress", hint: "your progress", input: "progress" },
+    { label: "settings", hint: "provider, models, tokens", input: "settings" },
+  );
+  for (const p of projects) {
+    if (p.id === here) continue;
+    entries.push(
+      { label: `open ${p.name}`, hint: "workspace", input: `open ${p.id}` },
+      { label: `cd ${p.name}`, hint: "project page", input: `cd ${p.id}` },
+      { label: `remix ${p.name}`, hint: "challenge", input: `remix ${p.id}` },
+    );
+  }
+  entries.push({ label: "back", hint: "previous screen", input: "back" });
+  return entries;
+}
+
+/** Entries whose label or hint contains every word typed, best matches first. */
+export function filterEntries(entries: PaletteEntry[], query: string): PaletteEntry[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return entries;
+  const hits = entries.filter((e) => {
+    const text = `${e.label} ${e.hint}`.toLowerCase();
+    return words.every((w) => text.includes(w));
+  });
+  const first = words[0]!;
+  // Stable sort: labels that start with what was typed come first.
+  return hits
+    .map((e, i) => ({ e, i, starts: e.label.toLowerCase().startsWith(first) ? 0 : 1 }))
+    .sort((a, b) => a.starts - b.starts || a.i - b.i)
+    .map(({ e }) => e);
+}

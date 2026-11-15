@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // The main navigation, drawn like tmux's window list: 0:projects* 1:progress.
+// Each tab has its own colour; the active one inverts in it.
 
 const NAV = [
-  { href: "/", label: "projects" },
-  { href: "/progress", label: "progress" },
-  { href: "/settings", label: "settings" },
+  { href: "/", label: "projects", role: "c-accent" },
+  { href: "/progress", label: "progress", role: "c-keyword" },
+  { href: "/settings", label: "settings", role: "c-number" },
 ];
 
 function isActive(href: string, pathname: string) {
@@ -19,7 +20,7 @@ function isActive(href: string, pathname: string) {
 export function NavTabs() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Main" className="flex min-w-0 gap-0.5 overflow-x-auto text-sm sm:gap-1">
+    <nav aria-label="Main" className="app-no-drag flex min-w-0 gap-1 overflow-x-auto text-sm">
       {NAV.map((item, i) => {
         const active = isActive(item.href, pathname);
         return (
@@ -27,17 +28,12 @@ export function NavTabs() {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-sm px-1.5 py-0.5 whitespace-nowrap sm:px-2 ${
-              active ? "glow bg-surface-2 text-ok" : "text-muted hover:text-text"
-            }`}
+            className={`tab ${item.role}`}
           >
-            <span aria-hidden className={`hidden sm:inline ${active ? "text-ok" : "text-comment"}`}>
+            <span aria-hidden className={`hidden sm:inline ${active ? "" : "text-comment"}`}>
               {i}:
             </span>
             {item.label}
-            <span aria-hidden className="inline-block w-[1ch]">
-              {active ? "*" : ""}
-            </span>
           </Link>
         );
       })}

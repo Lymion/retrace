@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, useId } from "react";
 
 // Terminal-style building blocks shared by every screen. The prompt line
 // doubles as the breadcrumb: each folder in the path is a link.
@@ -122,5 +122,62 @@ export function StatusTag({ tone, children }: { tone: "ok" | "info" | "warn"; ch
         ]
       </span>
     </span>
+  );
+}
+
+export type Role = "accent" | "keyword" | "number" | "cyan" | "warn" | "danger" | "ok";
+
+/**
+ * A pane: a square box with its title set into the top border, like a TUI
+ * window. `role` sets its colour (title, focused border, primary buttons).
+ */
+export function Pane({
+  title,
+  note,
+  role = "keyword",
+  on = false,
+  as: Tag = "section",
+  headingLevel = 2,
+  className = "",
+  labelledBy,
+  children,
+}: {
+  title: ReactNode;
+  note?: ReactNode;
+  role?: Role;
+  /** Draw the border in the role colour (the pane with focus, or the main action). */
+  on?: boolean;
+  as?: "section" | "aside" | "div" | "nav";
+  headingLevel?: 2 | 3;
+  className?: string;
+  /** Override the heading id, when something else needs to point at it. */
+  labelledBy?: string;
+  children: ReactNode;
+}) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
+  const auto = useId();
+  const id = labelledBy ?? auto;
+  return (
+    <Tag
+      className={`pane c-${role} ${on ? "pane-on" : ""} ${className}`}
+      aria-labelledby={Tag === "div" ? undefined : id}
+    >
+      <Heading id={id} className="pane-title">
+        {title}
+      </Heading>
+      {note && <span className="pane-note">{note}</span>}
+      {children}
+    </Tag>
+  );
+}
+
+/** The ❯ prompt line used as a section lead-in: ❯ ls -l projects/ */
+export function PromptLine({ command, flags }: { command: string; flags?: string }) {
+  return (
+    <p aria-hidden className="truncate text-bright">
+      <span className="text-keyword">❯ </span>
+      {command}
+      {flags && <span className="text-cyan"> {flags}</span>}
+    </p>
   );
 }
