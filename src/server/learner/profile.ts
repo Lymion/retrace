@@ -6,6 +6,7 @@ import type { Layer } from "@/shared/enums";
 import { runJsonTask } from "../ai/json";
 import type { AIProvider } from "../ai/provider";
 import { renderPrompt } from "../ai/prompts";
+import { modelFor } from "../ai/models";
 import { getActiveProvider } from "../ai/registry";
 import { profileBlock } from "../ai/context";
 import { getSettings } from "../settings";
@@ -153,7 +154,7 @@ export async function updateProfileFromChat(
     schema: ProfileUpdateSchema,
     request: {
       task: "profile_update",
-      model: settings.fastModel,
+      model: modelFor(settings, "fast"),
       system: renderPrompt("system", { learner_name: settings.learnerName }),
       context: renderPrompt("profile_update", {
         learner_name: settings.learnerName,

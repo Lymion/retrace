@@ -20,6 +20,8 @@ export const SettingsSchema = z.object({
   maxUploadMb: z.number().int().min(1).max(500),
   maxFiles: z.number().int().min(1).max(50_000),
   activeProvider: z.enum(PROVIDER_IDS),
+  /** When on, every task runs on the fast model. Cheaper, a little less thorough. */
+  economyMode: z.boolean(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -37,6 +39,7 @@ export function defaultSettings(): Settings {
     maxFiles: env.MAX_FILES,
     // With a key in .env the API is the obvious choice; otherwise use the login.
     activeProvider: env.ANTHROPIC_API_KEY ? "api-key" : "claude-login",
+    economyMode: false,
   };
 }
 

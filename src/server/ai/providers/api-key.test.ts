@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it, vi } from "vitest";
 import type { AIRequest } from "../provider";
-import { type MessagesClient, createApiKeyProvider } from "./api-key";
+import type { UsageReport } from "../usage";
+import { type MessagesClient, buildParams, createApiKeyProvider } from "./api-key";
 
 const request: AIRequest = {
   task: "chat",
@@ -19,11 +20,16 @@ function fakeClient(overrides: Partial<MessagesClient["messages"]> = {}) {
       { type: "text", text: "Hello " },
       { type: "text", text: "Haykal" },
     ],
+    usage: { input_tokens: 50, output_tokens: 7, cache_read_input_tokens: 2000 },
   }));
   const stream = vi.fn(async function* () {
-    yield { type: "message_start" };
+    yield {
+      type: "message_start",
+      message: { usage: { input_tokens: 30, output_tokens: 1, cache_creation_input_tokens: 1800 } },
+    };
     yield { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "Hel" } };
     yield { type: "content_block_delta", index: 0, delta: { type: "text_delta", text: "lo" } };
+    yield { type: "message_delta", usage: { output_tokens: 2 } };
     yield { type: "message_stop" };
   });
   return { messages: { create, stream, ...overrides } } as unknown as MessagesClient & {
@@ -81,5 +87,102 @@ describe("api-key provider", () => {
     const error = await provider.complete(request).catch((e: unknown) => e);
     expect(error).toMatchObject({ code: "not_ready", provider: "api-key" });
     expect((error as Error).message).not.toContain("SECRET");
+  });
+});
+
+describe("api-key usage reporting", () => {
+  it("reports the token counts of a finished call", async () => {
+    const reports: UsageReport[] = [];
+    const provider = createApiKeyProvider({
+      getKey: () => "k",
+      makeClient: () => fakeClient(),
+      onUsage: (r) => reports.push(r),
+    });
+    await provider.complete(request);
+    expect(reports).toEqual([
+      {
+        task: "chat",
+        provider: "api-key",
+        model: "claude-sonnet-5-5",
+        inputTokens: 50,
+        outputTokens: 7,
+        cacheReadTokens: 2000,
+        cacheWriteTokens: 0,
+      },
+    ]);
+  });
+
+  it("reports a streamed call, with output from the final delta", async () => {
+    const reports: UsageReport[] = [];
+    const provider = createApiKeyProvider({
+      getKey: () => "k",
+      makeClient: () => fakeClient(),
+      onUsage: (r) => reports.push(r),
+    });
+    for await (const _ of provider.stream(request)) void _;
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({ inputTokens: 30, outputTokens: 2, cacheWriteTokens: 1800 });
+  });
+
+  it("still reports when the learner stops the answer early", async () => {
+    const reports: UsageReport[] = [];
+    const provider = createApiKeyProvider({
+      getKey: () => "k",
+      makeClient: () => fakeClient(),
+      onUsage: (r) => reports.push(r),
+    });
+    for await (const chunk of provider.stream(request)) {
+      expect(chunk).toBe("Hel");
+      break; // like the stop button: the generator is closed mid-stream
+    }
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({ inputTokens: 30, outputTokens: 1 });
+  });
+});
+
+describe("buildParams caching", () => {
+  const chat: AIRequest = {
+    ...request,
+    stableContext: '## Open file\n<file path="a.js">...</file>',
+    context: "# Task: chat",
+    cache: true,
+    messages: [
+      { role: "user", content: "first question" },
+      { role: "assistant", content: "first answer" },
+      { role: "user", content: "second question" },
+    ],
+  };
+
+  it("caches up to the stable block and the last earlier message", () => {
+    const params = buildParams(chat);
+    const system = params.system as Anthropic.TextBlockParam[];
+    expect(system.map((b) => b.text)).toEqual([
+      "You are Retrace.",
+      "# Project: todo",
+      chat.stableContext,
+      "# Task: chat",
+    ]);
+    expect(system.map((b) => b.cache_control ?? null)).toEqual([
+      null,
+      null,
+      { type: "ephemeral" },
+      null,
+    ]);
+    expect(params.messages[1]!.content).toEqual([
+      { type: "text", text: "first answer", cache_control: { type: "ephemeral" } },
+    ]);
+    expect(params.messages[2]!.content).toBe("second question");
+  });
+
+  it("leaves one-shot requests uncached apart from the fact sheet", () => {
+    const params = buildParams({ ...chat, cache: false });
+    const system = params.system as Anthropic.TextBlockParam[];
+    expect(system.map((b) => b.text)).toEqual([
+      "You are Retrace.",
+      "# Project: todo",
+      `${chat.stableContext}\n\n# Task: chat`,
+    ]);
+    expect(system[1]!.cache_control).toEqual({ type: "ephemeral" });
+    expect(params.messages.every((m) => typeof m.content === "string")).toBe(true);
   });
 });

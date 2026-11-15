@@ -14,6 +14,7 @@ import { buildTutorRequest, fileBlock, outline } from "../context";
 import { runJsonTask } from "../json";
 import type { AIProvider } from "../provider";
 import { renderPrompt } from "../prompts";
+import { modelFor } from "../models";
 import { getActiveProvider } from "../registry";
 import { recordLearningEvent } from "../../learner/events";
 import { applyReviewConcepts } from "../../learner/profile";
@@ -128,7 +129,7 @@ export async function createRebuildSpec(
     db,
     projectId,
     task: "rebuild_spec",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("rebuild_spec", {
       learner_name: settings.learnerName,
       level_label: `${level.number}: ${level.name}`,
@@ -253,7 +254,7 @@ export async function reviewRebuild(
     db,
     projectId,
     task: "rebuild_review",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("rebuild_review", {
       learner_name: settings.learnerName,
       level_label: `${level.number}: ${level.name}`,

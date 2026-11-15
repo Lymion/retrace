@@ -11,6 +11,7 @@ import { buildTutorRequest, fileBlock } from "../context";
 import { runJsonTask } from "../json";
 import type { AIProvider } from "../provider";
 import { renderPrompt } from "../prompts";
+import { modelFor } from "../models";
 import { getActiveProvider } from "../registry";
 import { type SubmittedFile, SubmittedFilesSchema } from "./rebuild";
 
@@ -72,7 +73,7 @@ export async function createChallenge(
     db,
     projectId,
     task: "remix",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("remix", {
       learner_name: settings.learnerName,
       depth: settings.depth,
@@ -163,7 +164,7 @@ export async function reviewChallenge(
     db,
     projectId,
     task: "remix_review",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("remix_review", {
       learner_name: settings.learnerName,
       challenge: JSON.stringify(view.spec, null, 2),

@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { type Db, getDb } from "@/db/client";
 import { files, levels, messages } from "@/db/schema";
 import type { MessageKind } from "@/shared/enums";
@@ -7,6 +7,7 @@ import { getSettings } from "../../settings";
 import { buildTutorRequest, fileBlock, recentMessages } from "../context";
 import type { AIProvider, AIRequest } from "../provider";
 import { renderPrompt } from "../prompts";
+import { modelFor, outputCap } from "../models";
 import { getActiveProvider } from "../registry";
 import { collectOutsideContext } from "../../context-providers/registry";
 import { recordLearningEvent } from "../../learner/events";
@@ -14,7 +15,8 @@ import { recordLearningEvent } from "../../learner/events";
 // The two streamed tasks: free chat (including "Explain this selection")
 // and teach_level, the Tour mode lesson.
 
-const LESSON_LINE_BUDGET = 1500;
+// Files beyond this many lines are sent as outlines (declarations only).
+export const LESSON_LINE_BUDGET = 800;
 
 export interface ChatInput {
   projectId: number;
@@ -79,7 +81,7 @@ export function prepareChat(
     db,
     projectId: input.projectId,
     task: input.selection ? "explain_selection" : "chat",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("chat", {
       learner_name: settings.learnerName,
       selection_rule: selectionRule,
@@ -96,7 +98,8 @@ export function prepareChat(
       : null,
     outside: collectOutsideContext({ projectId: input.projectId, fileId: input.fileId ?? null }),
     messages: [...history, { role: "user", content: input.message }],
-    maxTokens: 1500,
+    maxTokens: outputCap(settings, "chat"),
+    cache: true,
   });
 
   return {
@@ -152,6 +155,23 @@ export function levelFilesBlock(db: Db, levelId: number): string {
     .join("\n\n");
 }
 
+/** The most recent saved lesson for a level, so asking again costs no model call. */
+export function savedLesson(db: Db, projectId: number, levelId: number): string | null {
+  const row = db
+    .select({ content: messages.content })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.projectId, projectId),
+        eq(messages.levelId, levelId),
+        eq(messages.kind, "lesson"),
+      ),
+    )
+    .orderBy(desc(messages.createdAt), desc(messages.id))
+    .get();
+  return row?.content.trim() ? row.content : null;
+}
+
 export function prepareLesson(
   projectId: number,
   levelId: number,
@@ -172,7 +192,7 @@ export function prepareLesson(
     db,
     projectId,
     task: "teach_level",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("teach_level", {
       learner_name: settings.learnerName,
       level_label: `${level.number}: ${level.name}`,
@@ -180,7 +200,6 @@ export function prepareLesson(
       skipped_rule: level.skipped
         ? "This project SKIPPED this level, so there are no files. Teach it as a missing level: what it would add to this project, which files you would create and where, and what could go wrong without it. In part 2, list the files the learner would write (marked as new)."
         : "",
-      level_files: levelFilesBlock(db, levelId),
     }),
     levelId,
     outside: collectOutsideContext({ projectId, fileId: null }),
@@ -188,7 +207,9 @@ export function prepareLesson(
       ...history,
       { role: "user", content: `Teach me level ${level.number}: ${level.name}.` },
     ],
-    maxTokens: 3500,
+    maxTokens: outputCap(settings, "lesson"),
+    cache: true,
+    stable: [`## This level's files\n${levelFilesBlock(db, levelId)}`],
   });
 
   if (level.status === "not_started") {

@@ -12,6 +12,7 @@ import { buildTutorRequest } from "../context";
 import { runJsonTask } from "../json";
 import type { AIProvider } from "../provider";
 import { renderPrompt } from "../prompts";
+import { modelFor } from "../models";
 import { getActiveProvider } from "../registry";
 
 // Quizzes from the learner's own code. The answers never leave the server
@@ -42,7 +43,7 @@ export async function createQuiz(
     db,
     projectId,
     task: "quiz_generate",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("quiz_generate", {
       learner_name: settings.learnerName,
       scope,
@@ -210,7 +211,7 @@ export async function answerQuestion(
       schema: QuizGradeSchema,
       request: {
         task: "quiz_grade",
-        model: settings.fastModel,
+        model: modelFor(settings, "fast"),
         system: renderPrompt("system", { learner_name: settings.learnerName }),
         context: renderPrompt("quiz_grade", {
           learner_name: settings.learnerName,

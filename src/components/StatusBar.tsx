@@ -10,6 +10,13 @@ import {
   shellPath,
 } from "@/lib/commands";
 import { apiFetch } from "@/lib/api-client";
+import {
+  USAGE_EVENT,
+  type UsageSummaryView,
+  cachedShare,
+  formatTokens,
+  totalTokens,
+} from "@/lib/tokens";
 
 // The status line at the bottom of the window, like vim's or tmux's, with a
 // command line: press ":" anywhere (or click it) and type "help".
@@ -72,6 +79,23 @@ export function StatusBar() {
     );
     return () => {
       cancelled = true;
+    };
+  }, [pathname]);
+
+  // Today's token count. Refreshed on every screen change and after each AI call.
+  const [usage, setUsage] = useState<UsageSummaryView | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const load = () =>
+      apiFetch<{ usage: UsageSummaryView }>("/api/usage").then(
+        (data) => !cancelled && setUsage(data.usage),
+        () => {},
+      );
+    void load();
+    window.addEventListener(USAGE_EVENT, load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(USAGE_EVENT, load);
     };
   }, [pathname]);
 
@@ -174,6 +198,15 @@ export function StatusBar() {
             style={{ caretColor: "var(--ok)" }}
           />
         </label>
+        {usage && (
+          <span
+            className="hidden shrink-0 border-l border-border px-3 text-comment sm:block"
+            title={`Tokens used today across ${usage.today.calls} AI calls. Details in Settings.`}
+          >
+            <span className="text-number">{formatTokens(totalTokens(usage.today))}</span> tok today
+            {usage.today.calls > 0 && <> · {cachedShare(usage.today)}% cached</>}
+          </span>
+        )}
         <span className="hidden shrink-0 border-l border-border px-3 text-comment md:block">
           utf-8 · retrace 0.1.0
         </span>

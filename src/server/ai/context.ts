@@ -143,16 +143,60 @@ export function profileBlock(db: Db): string {
     .join("\n");
 }
 
-/** The last `limit` chat messages for a project, oldest first. */
+/** Whole history budget, in characters (roughly 1,500 tokens). */
+export const HISTORY_CHAR_BUDGET = 6000;
+/** Longest an earlier chat message may be, in characters. */
+export const MESSAGE_CHAR_CAP = 1500;
+
+/** An earlier lesson shrunk to its first heading and first paragraph. */
+export function shortenLesson(content: string): string {
+  const blocks = content
+    .split(/\n\s*\n/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  const heading = blocks.find((b) => /^#{1,6}\s/.test(b));
+  const paragraph = blocks.find((b) => !/^#{1,6}\s/.test(b) && !b.startsWith("```"));
+  const kept = [heading, paragraph?.slice(0, 600)].filter(Boolean).join("\n\n");
+  return `${kept}\n\n(Earlier lesson, shortened to save space.)`;
+}
+
+function capMessage(content: string): string {
+  return content.length <= MESSAGE_CHAR_CAP
+    ? content
+    : `${content.slice(0, MESSAGE_CHAR_CAP)}\n(…shortened)`;
+}
+
+/**
+ * The last chat messages for a project, oldest first: at most `limit`, and
+ * at most HISTORY_CHAR_BUDGET characters in total. Earlier lessons are
+ * shortened and long messages capped, because the model only needs the gist
+ * of what was already said.
+ */
 export function recentMessages(db: Db, projectId: number, limit = 10): AIMessage[] {
-  return db
-    .select({ role: messages.role, content: messages.content })
+  const rows = db
+    .select({ role: messages.role, kind: messages.kind, content: messages.content })
     .from(messages)
     .where(and(eq(messages.projectId, projectId), inArray(messages.kind, ["chat", "lesson"])))
     .orderBy(desc(messages.createdAt), desc(messages.id))
     .limit(limit)
-    .all()
-    .reverse();
+    .all();
+
+  const kept: AIMessage[] = [];
+  let used = 0;
+  for (const row of rows) {
+    const content = row.kind === "lesson" ? shortenLesson(row.content) : capMessage(row.content);
+    if (used + content.length > HISTORY_CHAR_BUDGET) break;
+    used += content.length;
+    kept.push({ role: row.role, content });
+  }
+  kept.reverse();
+  // Lessons are saved without a question before them. The conversation must
+  // start with the learner speaking, so add a short opener instead of
+  // dropping the lesson the next question is probably about.
+  if (kept[0]?.role === "assistant") {
+    kept.unshift({ role: "user", content: "(Start of our earlier conversation.)" });
+  }
+  return kept;
 }
 
 export interface TutorRequestInput {
@@ -170,28 +214,60 @@ export interface TutorRequestInput {
   maxTokens: number;
   /** Outside context (phase 13 ContextProviders), already formatted. */
   outside?: string[];
+  /**
+   * Set for requests that are likely to be followed by another with the same
+   * start (chat turns, a lesson then questions). The level, open file and
+   * `stable` blocks then come first so the provider can cache them.
+   */
+  cache?: boolean;
+  /** Large blocks that repeat between requests (e.g. a level's files). */
+  stable?: string[];
 }
 
 export function buildTutorRequest(input: TutorRequestInput): AIRequest {
   const settings = getSettings(input.db);
-  const context = [
-    input.instructions,
-    input.levelId ? levelBlock(input.db, input.levelId) : "",
-    input.file
-      ? `## Open file\n${fileBlock(input.file.path, input.file.content, input.file.focus)}`
-      : "",
-    ...(input.extra ?? []),
-    profileBlock(input.db),
-    ...(input.outside ?? []),
-  ].filter(Boolean);
+  const level = input.levelId ? levelBlock(input.db, input.levelId) : "";
+  const file = input.file
+    ? `## Open file\n${fileBlock(input.file.path, input.file.content, input.file.focus)}`
+    : "";
+  const join = (parts: (string | undefined)[]) => parts.filter(Boolean).join("\n\n");
 
-  return {
+  const base = {
     task: input.task,
     model: input.model,
     system: renderPrompt("system", { learner_name: settings.learnerName }),
     cachedContext: factSheetFor(input.db, input.projectId),
-    context: context.join("\n\n"),
     messages: input.messages,
     maxTokens: input.maxTokens,
+  };
+
+  if (input.cache) {
+    // Cache-friendly order: the big part that repeats from one turn to the
+    // next (level, open file, the level's files) goes first, so it can be
+    // reused; what changes per request (instructions, profile) comes after.
+    return {
+      ...base,
+      cache: true,
+      stableContext: join([level, file, ...(input.stable ?? [])]),
+      context: join([
+        input.instructions,
+        ...(input.extra ?? []),
+        profileBlock(input.db),
+        ...(input.outside ?? []),
+      ]),
+    };
+  }
+
+  return {
+    ...base,
+    context: join([
+      input.instructions,
+      level,
+      file,
+      ...(input.stable ?? []),
+      ...(input.extra ?? []),
+      profileBlock(input.db),
+      ...(input.outside ?? []),
+    ]),
   };
 }

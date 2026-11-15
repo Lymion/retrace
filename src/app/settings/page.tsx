@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/terminal";
 import { ProviderPanel } from "@/features/settings/ProviderPanel";
 import { SettingsForm } from "@/features/settings/SettingsForm";
+import { UsagePanel } from "@/features/settings/UsagePanel";
 import { getSettings } from "@/server/settings";
 
 export const metadata = { title: "Settings · Retrace" };
@@ -14,6 +15,7 @@ export default function SettingsPage() {
       </PageHeader>
       <ProviderPanel />
       <SettingsForm initial={settings} />
+      <UsagePanel />
     </div>
   );
 }

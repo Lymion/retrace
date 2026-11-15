@@ -1,3 +1,4 @@
+import { announceUsage } from "./tokens";
 // Browser-side fetch wrapper. Every API route answers errors as
 // { error: { message, code } }, so callers get one Error type to show.
 
@@ -49,7 +50,8 @@ export function postJson<T>(url: string, data: unknown, init?: RequestInit): Pro
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
     ...init,
-  });
+    // Most POSTs ask the tutor something, so the token count may have moved.
+  }).finally(announceUsage);
 }
 
 export function errorMessage(error: unknown): string {

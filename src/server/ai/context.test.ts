@@ -9,6 +9,8 @@ import {
   fileBlock,
   profileBlock,
   recentMessages,
+  shortenLesson,
+  HISTORY_CHAR_BUDGET,
 } from "./context";
 import { PROMPT_NAMES, fillPrompt, loadPrompt } from "./prompts";
 
@@ -123,5 +125,79 @@ describe("prompt files", () => {
     expect(fillPrompt("Hi {learner_name}, {oops}", { learner_name: "Haykal" })).toBe(
       "Hi Haykal, {oops}",
     );
+  });
+});
+
+describe("token savings in the tutor context", () => {
+  function project(db: ReturnType<typeof createTestDb>) {
+    return db
+      .insert(projects)
+      .values({ name: "todo", source: "zip", sourceRef: "t.zip" })
+      .returning()
+      .get();
+  }
+
+  it("puts the open file and stable blocks first when caching", () => {
+    const db = createTestDb();
+    const request = buildTutorRequest({
+      db,
+      projectId: project(db).id,
+      task: "chat",
+      model: "m",
+      instructions: "TASK",
+      file: { path: "a.js", content: "x" },
+      stable: ["## This level's files\nFILES"],
+      outside: ["OUTSIDE"],
+      messages: [{ role: "user", content: "hi" }],
+      maxTokens: 10,
+      cache: true,
+    });
+    expect(request.cache).toBe(true);
+    expect(request.stableContext).toContain("## Open file");
+    expect(request.stableContext).toContain("FILES");
+    expect(request.stableContext).not.toContain("TASK");
+    expect(request.context).toContain("TASK");
+    expect(request.context).toContain("## Learner profile");
+    expect(request.context).toContain("OUTSIDE");
+    expect(request.context).not.toContain("## Open file");
+  });
+
+  it("shortens earlier lessons to their first heading and paragraph", () => {
+    const lesson = "## 1. What we build\n\nWe add a database.\n\n## 2. Files\n\nLots more text.";
+    const short = shortenLesson(lesson);
+    expect(short).toContain("## 1. What we build");
+    expect(short).toContain("We add a database.");
+    expect(short).not.toContain("## 2. Files");
+    expect(short).toContain("shortened");
+  });
+
+  it("keeps history within the size budget and starts with the learner", () => {
+    const db = createTestDb();
+    const p = project(db);
+    const at = (i: number) => new Date(1000 + i);
+    db.insert(messages)
+      .values([
+        {
+          projectId: p.id,
+          role: "assistant",
+          kind: "lesson",
+          content: `## Lesson\n\nIntro.\n\n${"x".repeat(9000)}`,
+          createdAt: at(0),
+        },
+        { projectId: p.id, role: "user", content: "q1", createdAt: at(1) },
+        { projectId: p.id, role: "assistant", content: "a".repeat(5000), createdAt: at(2) },
+        { projectId: p.id, role: "user", content: "q2", createdAt: at(3) },
+      ])
+      .run();
+    const history = recentMessages(db, p.id);
+    const total = history.reduce((n, m) => n + m.content.length, 0);
+    expect(total).toBeLessThanOrEqual(HISTORY_CHAR_BUDGET + 100);
+    expect(history[0]!.role).toBe("user");
+    // The long answer is capped, and the lesson survives in its short form.
+    expect(history.find((m) => m.content.startsWith("aaa"))!.content.length).toBeLessThan(1600);
+    expect(
+      history.some((m) => m.content.includes("Intro.") && m.content.includes("shortened")),
+    ).toBe(true);
+    expect(history.map((m) => m.content).join("")).not.toContain("xxxxxxxxxx");
   });
 });

@@ -10,6 +10,7 @@ import { buildTutorRequest } from "../context";
 import { runJsonTask } from "../json";
 import type { AIProvider } from "../provider";
 import { renderPrompt } from "../prompts";
+import { modelFor } from "../models";
 import { getActiveProvider } from "../registry";
 
 // Whole-project insights: design decisions with their alternatives, and
@@ -51,7 +52,7 @@ export async function generateAlternatives(
     db,
     projectId,
     task: "alternatives",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("alternatives", {
       learner_name: settings.learnerName,
       code: codeBundle(db, { projectId, maxLines: 2000 }).text,
@@ -124,7 +125,7 @@ export async function generateGaps(
     db,
     projectId,
     task: "gaps",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("gaps", {
       learner_name: settings.learnerName,
       roadmap:

@@ -13,6 +13,7 @@ export interface SettingsValues {
   fastModel: string;
   maxUploadMb: number;
   maxFiles: number;
+  economyMode: boolean;
 }
 
 export function SettingsForm({ initial }: { initial: SettingsValues }) {
@@ -116,6 +117,22 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
           />
         </Field>
       </div>
+
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-1"
+          checked={values.economyMode}
+          onChange={(e) => set("economyMode", e.target.checked)}
+        />
+        <span>
+          <span className="font-medium">Economy mode</span>
+          <span className="block text-xs text-muted">
+            Every task uses the fast model, including lessons and chat. Uses far fewer of your
+            tokens; answers are a little less thorough.
+          </span>
+        </span>
+      </label>
 
       <h3 className="pt-2 font-semibold">Upload limits</h3>
       <div className="grid gap-4 sm:grid-cols-2">

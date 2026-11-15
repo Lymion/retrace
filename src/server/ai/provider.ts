@@ -17,8 +17,19 @@ export interface AIRequest {
   system: string;
   /** The project fact sheet. Same for every request about a project, so providers may cache it. */
   cachedContext?: string;
-  /** Task instructions, current level, open file and learner profile. Changes per request. */
+  /**
+   * The current level and the code being discussed. Stays the same from one
+   * chat turn to the next, so it sits before `context` and can be cached too.
+   */
+  stableContext?: string;
+  /** Task instructions and the learner profile. Changes per request. */
   context?: string;
+  /**
+   * True for tasks that are likely to be followed by another request with the
+   * same start (chat turns, a lesson then questions). Providers that support
+   * caching then mark `stableContext` and the earlier messages for reuse.
+   */
+  cache?: boolean;
   messages: AIMessage[];
   maxTokens: number;
 }
@@ -58,7 +69,7 @@ export class AIError extends Error {
 
 /** The fixed parts of the system prompt, in the brief's context order. */
 export function systemParts(request: AIRequest): string[] {
-  return [request.system, request.cachedContext, request.context].filter((part): part is string =>
-    Boolean(part && part.trim()),
+  return [request.system, request.cachedContext, request.stableContext, request.context].filter(
+    (part): part is string => Boolean(part && part.trim()),
   );
 }

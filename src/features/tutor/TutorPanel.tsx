@@ -117,9 +117,19 @@ export function TutorPanel({
     );
   }
 
-  function teachLevel() {
+  // A lesson already written for this level is shown again for free; only
+  // "regenerate" asks the tutor to write a new one.
+  const hasLesson =
+    level !== null && messages.some((m) => m.kind === "lesson" && m.levelNumber === level.number);
+
+  function teachLevel(regenerate = false) {
     if (!level || busy) return;
-    void run("lesson", `/api/projects/${projectId}/levels/${level.id}/lesson`, {}, null);
+    void run(
+      "lesson",
+      `/api/projects/${projectId}/levels/${level.id}/lesson`,
+      regenerate ? { regenerate: true } : {},
+      null,
+    );
   }
 
   // ---- collapsed states
@@ -254,11 +264,23 @@ export function TutorPanel({
           <button
             type="button"
             className="btn text-xs"
-            onClick={teachLevel}
+            onClick={() => teachLevel()}
             disabled={!level || busy}
+            title={hasLesson ? "Shows the lesson already written, with no new tokens" : undefined}
           >
             {level?.skipped ? "Teach this missing level" : "Tour this level"}
           </button>
+          {hasLesson && (
+            <button
+              type="button"
+              className="btn btn-ghost text-xs"
+              onClick={() => teachLevel(true)}
+              disabled={busy}
+              title="Ask the tutor to write this level's lesson again (uses tokens)"
+            >
+              regenerate
+            </button>
+          )}
           <button
             type="button"
             className="btn text-xs"

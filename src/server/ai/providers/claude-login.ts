@@ -11,6 +11,7 @@ import {
   type ProviderStatus,
   systemParts,
 } from "../provider";
+import { type RawUsage, type UsageReport, toReport } from "../usage";
 
 // The "claude-login" provider: the official Claude Agent SDK, which runs
 // Claude Code signed in with the learner's own Claude login. Claude Code is
@@ -213,6 +214,8 @@ export interface ClaudeLoginDeps {
   statusTtlMs?: number;
   /** Model for the one-word check behind "Check again". */
   pingModel?: () => string;
+  /** Called once per finished call with its token counts. */
+  onUsage?: (report: UsageReport) => void;
 }
 
 async function loadQuery(): Promise<QueryFn> {
@@ -239,6 +242,16 @@ export function createClaudeLoginProvider(deps: ClaudeLoginDeps = {}): AIProvide
     const onAbort = () => abortController.abort();
     signal?.addEventListener("abort", onAbort);
     let handle: QueryHandle | undefined;
+    // Token counts: from the final result, or, when the learner stops a
+    // streamed answer early, from the stream events seen so far.
+    const partial: RawUsage = {};
+    let reported = false;
+    const report = (usage: RawUsage | undefined) => {
+      reported = true;
+      deps.onUsage?.(
+        toReport({ task: request.task, provider: "claude-login", model: request.model }, usage),
+      );
+    };
     try {
       const query = await getQuery();
       handle = query({
@@ -252,13 +265,17 @@ export function createClaudeLoginProvider(deps: ClaudeLoginDeps = {}): AIProvide
       for await (const message of handle) {
         if (message.type === "stream_event") {
           const event = message.event;
-          if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+          if (event.type === "message_start") Object.assign(partial, event.message.usage);
+          else if (event.type === "message_delta")
+            partial.output_tokens = event.usage.output_tokens;
+          else if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
             streamed += event.delta.text;
             yield event.delta.text;
           }
         } else if (message.type === "assistant" && message.error) {
           throw errorFromText(String(message.error));
         } else if (message.type === "result") {
+          report((message as { usage?: RawUsage }).usage);
           if (message.subtype !== "success")
             throw errorFromText(`Claude Code stopped early (${message.subtype}).`);
           if (message.is_error) throw errorFromText(message.result);
@@ -285,6 +302,7 @@ export function createClaudeLoginProvider(deps: ClaudeLoginDeps = {}): AIProvide
       if (mapped.code === "not_ready") authProblem = mapped.message;
       throw mapped;
     } finally {
+      if (!reported && partial.input_tokens !== undefined) report(partial);
       signal?.removeEventListener("abort", onAbort);
       handle?.close?.();
       removeLater(cwd);

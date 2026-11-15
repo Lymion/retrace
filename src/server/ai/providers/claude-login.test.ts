@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import type { Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AIRequest } from "../provider";
+import type { UsageReport } from "../usage";
 import {
   BLOCKED_TOOLS,
   type QueryFn,
@@ -235,5 +236,49 @@ describe("claude-login status", () => {
     expect(calls).toHaveLength(1);
     await provider.status(true);
     expect(calls).toHaveLength(2);
+  });
+});
+
+describe("claude-login usage reporting", () => {
+  const start = {
+    type: "stream_event",
+    event: {
+      type: "message_start",
+      message: { usage: { input_tokens: 40, cache_read_input_tokens: 900 } },
+    },
+  } as unknown as SDKMessage;
+  const withUsage = {
+    type: "result",
+    subtype: "success",
+    is_error: false,
+    result: "Hello",
+    usage: { input_tokens: 40, output_tokens: 12, cache_read_input_tokens: 900 },
+  } as unknown as SDKMessage;
+
+  it("reports the counts from the result once", async () => {
+    const reports: UsageReport[] = [];
+    const { query } = fakeQuery([start, delta("Hel"), delta("lo"), withUsage]);
+    const provider = createClaudeLoginProvider({ query, onUsage: (r) => reports.push(r) });
+    for await (const _ of provider.stream(request)) void _;
+    expect(reports).toEqual([
+      {
+        task: "chat",
+        provider: "claude-login",
+        model: "claude-sonnet-5-5",
+        inputTokens: 40,
+        outputTokens: 12,
+        cacheReadTokens: 900,
+        cacheWriteTokens: 0,
+      },
+    ]);
+  });
+
+  it("reports what it saw when the learner stops early", async () => {
+    const reports: UsageReport[] = [];
+    const { query } = fakeQuery([start, delta("Hel"), delta("lo"), withUsage]);
+    const provider = createClaudeLoginProvider({ query, onUsage: (r) => reports.push(r) });
+    for await (const _ of provider.stream(request)) break;
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({ inputTokens: 40, cacheReadTokens: 900 });
   });
 });

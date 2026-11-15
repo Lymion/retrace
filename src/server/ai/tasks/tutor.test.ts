@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { POST as chatPOST } from "@/app/api/chat/route";
+import { POST as lessonPOST } from "@/app/api/projects/[id]/levels/[levelId]/lesson/route";
 import { setDbForTests, type Db } from "@/db/client";
 import { levels, messages } from "@/db/schema";
 import { createTestDb } from "@tests/helpers/db";
@@ -64,8 +65,8 @@ describe("chat", () => {
 
     expect(task.request.task).toBe("explain_selection");
     expect(task.request.model).toBe("claude-sonnet-5-5");
-    expect(task.request.context).toContain("## Current level: 3. Backend core");
-    expect(task.request.context).toContain('<file path="server/routes/todos.js"');
+    expect(task.request.stableContext).toContain("## Current level: 3. Backend core");
+    expect(task.request.stableContext).toContain('<file path="server/routes/todos.js"');
     expect(task.request.context).toContain("selected lines 16-16");
     expect(task.request.context).toContain("## Learner profile");
     expect(task.request.messages.at(-1)).toEqual({
@@ -187,9 +188,9 @@ describe("teach_level", () => {
       "server/app.js",
       "server/index.js",
     ]) {
-      expect(task.request.context).toContain(`<file path="${path}"`);
+      expect(task.request.stableContext).toContain(`<file path="${path}"`);
     }
-    expect(task.request.context).not.toContain('<file path="client/src/App.jsx"');
+    expect(task.request.stableContext).not.toContain('<file path="client/src/App.jsx"');
     expect(db.select().from(levels).where(eq(levels.id, level.id)).get()?.status).toBe("touring");
 
     const lesson = fixture("lesson-level3.md");
@@ -203,6 +204,55 @@ describe("teach_level", () => {
     const testing = levelNamed("Testing");
     const task = prepareLesson(projectId, testing.id, db, new FakeProvider());
     expect(task.request.context).toContain("SKIPPED this level");
-    expect(task.request.context).toContain("(This level has no files in the project.)");
+    expect(task.request.stableContext).toContain("(This level has no files in the project.)");
+  });
+});
+
+describe("token savings", () => {
+  const ask = (levelId: number, body: unknown = {}) =>
+    lessonPOST(new Request("http://test/lesson", { method: "POST", body: JSON.stringify(body) }), {
+      params: Promise.resolve({ id: String(projectId), levelId: String(levelId) }),
+    });
+
+  it("serves a saved lesson again without a model call, and regenerates only on request", async () => {
+    const api = new FakeProvider("api-key", ["First lesson?", "Second lesson?"]);
+    setProvidersForTests({ "api-key": api, "claude-login": new FakeProvider("claude-login") });
+    updateSettings({ activeProvider: "api-key" }, db);
+    const level = levelNamed("Backend core");
+
+    expect(await (await ask(level.id)).text()).toBe("First lesson?");
+    const again = await ask(level.id);
+    expect(again.headers.get("X-Retrace-Reused")).toBe("1");
+    expect(await again.text()).toBe("First lesson?");
+    expect(api.requests).toHaveLength(1);
+    const lessons = () =>
+      db
+        .select()
+        .from(messages)
+        .all()
+        .filter((m) => m.kind === "lesson");
+    expect(lessons()).toHaveLength(1);
+
+    expect(await (await ask(level.id, { regenerate: true })).text()).toBe("Second lesson?");
+    expect(api.requests).toHaveLength(2);
+    expect(lessons()).toHaveLength(2);
+    expect(await (await ask(level.id)).text()).toBe("Second lesson?");
+    expect(api.requests).toHaveLength(2);
+  });
+
+  it("marks chat and lessons for caching, with caps that follow the depth", () => {
+    updateSettings({ depth: "advanced" }, db);
+    const chat = prepareChat({ projectId, message: "hi" }, db, new FakeProvider());
+    const lesson = prepareLesson(projectId, levelNamed("Backend core").id, db, new FakeProvider());
+    expect(chat.request.cache).toBe(true);
+    expect(lesson.request.cache).toBe(true);
+    expect(chat.request.maxTokens).toBeLessThan(1500);
+    expect(lesson.request.maxTokens).toBeLessThan(3500);
+  });
+
+  it("uses the fast model for everything in economy mode", () => {
+    updateSettings({ economyMode: true, fastModel: "claude-haiku-5-5" }, db);
+    const chat = prepareChat({ projectId, message: "hi" }, db, new FakeProvider());
+    expect(chat.request.model).toBe("claude-haiku-5-5");
   });
 });

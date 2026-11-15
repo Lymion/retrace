@@ -22,6 +22,12 @@ export interface BundleOptions {
   projectId: number;
   levelId?: number | null;
   maxLines?: number;
+  /**
+   * When set, only files in these layers may be sent in full; the rest are
+   * outlined. The project-wide audit uses it to spend its budget on the code
+   * where security problems live.
+   */
+  fullLayers?: Layer[];
 }
 
 export interface CodeBundle {
@@ -32,7 +38,7 @@ export interface CodeBundle {
 
 export function codeBundle(
   db: Db,
-  { projectId, levelId, maxLines = 2500 }: BundleOptions,
+  { projectId, levelId, maxLines = 2500, fullLayers }: BundleOptions,
 ): CodeBundle {
   const rows = db
     .select()
@@ -49,7 +55,8 @@ export function codeBundle(
   let used = 0;
   const parts: string[] = [];
   for (const file of rows) {
-    if (used + file.lineCount <= maxLines) {
+    const mayBeFull = !fullLayers || fullLayers.includes(file.layer);
+    if (mayBeFull && used + file.lineCount <= maxLines) {
       used += file.lineCount;
       parts.push(fileBlock(file.path, file.content));
     } else {

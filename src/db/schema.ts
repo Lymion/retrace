@@ -385,3 +385,20 @@ export const reports = sqliteTable(
   },
   (t) => [index("report_project_kind").on(t.projectId, t.kind)],
 );
+
+/** One row per model call: how many tokens it used. Never any prompt or code text. */
+export const aiUsage = sqliteTable(
+  "ai_usage",
+  {
+    id: id(),
+    task: text().notNull(),
+    provider: text({ enum: PROVIDER_IDS }).notNull(),
+    model: text().notNull(),
+    inputTokens: integer().notNull().default(0),
+    outputTokens: integer().notNull().default(0),
+    cacheReadTokens: integer().notNull().default(0),
+    cacheWriteTokens: integer().notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index("ai_usage_created").on(t.createdAt)],
+);

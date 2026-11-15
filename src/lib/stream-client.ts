@@ -1,4 +1,5 @@
 import { ApiError } from "./api-client";
+import { announceUsage } from "./tokens";
 
 // Reads a streamed text reply from our API. Errors before the stream starts
 // arrive as normal JSON errors; errors during the stream arrive as a marker
@@ -6,7 +7,15 @@ import { ApiError } from "./api-client";
 
 const STREAM_ERROR_MARK = "\u001eretrace-error:";
 
-export async function streamPost(
+export async function streamPost(...args: Parameters<typeof readStream>): Promise<string> {
+  try {
+    return await readStream(...args);
+  } finally {
+    announceUsage();
+  }
+}
+
+async function readStream(
   url: string,
   body: unknown,
   onText: (textSoFar: string) => void,

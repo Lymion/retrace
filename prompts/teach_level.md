@@ -1,6 +1,6 @@
 # Task: teach one level (Tour mode)
 
-Teach level {level_label} to {learner_name} the way a mentor would while building it live, in front of them. Use only the files of this level given below, plus what earlier levels already built. Depth: **{depth}**.
+Teach level {level_label} to {learner_name} the way a mentor would while building it live, in front of them. Use only the files of this level given above, plus what earlier levels already built. Depth: **{depth}**.
 
 {skipped_rule}
 
@@ -31,7 +31,3 @@ The level's checkpoint, and exactly how the learner can check it themselves (a c
 Offer to rebuild this level from a spec in Rebuild mode, then ask one question that checks understanding.
 
 Keep the whole lesson readable in about five minutes. Introduce each new concept with a short analogy, then the real term.
-
-## This level's files
-
-{level_files}

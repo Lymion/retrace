@@ -9,6 +9,7 @@ import { FILE_LINE_BUDGET, buildTutorRequest } from "../context";
 import { runJsonTask } from "../json";
 import type { AIProvider } from "../provider";
 import { renderPrompt } from "../prompts";
+import { modelFor } from "../models";
 import { getActiveProvider } from "../registry";
 
 // annotate: one file, its level, depth -> 10 to 15 line notes.
@@ -102,7 +103,7 @@ export async function annotateFile(
     db,
     projectId,
     task: "annotate",
-    model: settings.fastModel,
+    model: modelFor(settings, "fast"),
     instructions: renderPrompt("annotate", {
       learner_name: settings.learnerName,
       depth,

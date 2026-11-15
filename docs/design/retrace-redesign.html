@@ -1,0 +1,460 @@
+<title>Retrace Redesign Test</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+/* Layout: one terminal window (tmux-style bar, update line, screen of titled panes, key hints, status line). Notes above, change list below. Single dark look on purpose: it is the app's own theme. */
+:root{
+  --bg:#0f1117;--surface:#151821;--surface-2:#1d212c;--border:#2a2f3c;--rule:#3b4252;
+  --text:#d0d5de;--bright:#f2f4f8;--muted:#a7aebb;--comment:#8a92a2;
+  --ok:#7ee787;--accent:#79c0ff;--keyword:#d2a8ff;--number:#ffa657;--warn:#e3b341;--danger:#ff7b72;--cyan:#56d4dd;
+  --page:#090b0f;--code:#0a0c11;
+  --mono:"Cascadia Code","Cascadia Mono","JetBrains Mono",ui-monospace,Consolas,Menlo,monospace;
+  --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --prose:var(--mono);
+  --ease:cubic-bezier(.23,1,.32,1);
+  color-scheme:dark;
+}
+:root[data-prose="sans"]{--prose:var(--sans)}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--text);font:14px/1.55 var(--mono);padding-block:24px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-size:18px;margin:0;color:var(--bright)}
+h2{font-size:14px;margin:0;color:var(--bright)}
+h2::before{content:"## ";color:var(--keyword);font-weight:400}
+p{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+:focus-visible{outline:2px solid var(--ok);outline-offset:2px}
+.dim{color:var(--comment)} .mut{color:var(--muted)} .ok{color:var(--ok)} .kw{color:var(--keyword)} .num{color:var(--number)} .acc{color:var(--accent)} .warn{color:var(--warn)} .cy{color:var(--cyan)} .br{color:var(--bright)}
+.glow{text-shadow:0 0 8px color-mix(in srgb,currentColor 30%,transparent)}
+.note{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between}
+.note p{max-width:62ch;color:var(--muted);margin-top:6px}
+.seg{display:inline-flex;border:1px solid var(--border)}
+.seg button{padding:6px 10px;font-size:12px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface-2);color:var(--ok)}
+.seg-label{font-size:12px;color:var(--comment);display:block;margin-bottom:4px}
+
+.win{position:relative;background:var(--bg);border:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+.bar{display:flex;align-items:center;gap:14px;height:38px;background:var(--surface);border-bottom:1px solid var(--border);padding-left:12px}
+.brand{font-weight:700;color:var(--ok);white-space:nowrap}
+.tabs{display:flex;gap:4px;min-width:0;overflow-x:auto}
+.tab{padding:4px 8px;color:var(--muted);white-space:nowrap}
+.tab i{font-style:normal;color:var(--comment)}
+.tab:hover{color:var(--text)}
+.tab[aria-current="page"]{background:var(--ok);color:var(--bg);font-weight:700}
+.tab[aria-current="page"] i{color:var(--bg)}
+.tab[aria-current="page"]::after{content:"*"}
+.find{margin-left:auto;display:flex;align-items:center;gap:8px;padding:3px 8px;font-size:12px;color:var(--comment);white-space:nowrap}
+.find:hover{color:var(--ok)}
+kbd{font:inherit;font-size:11px;border:1px solid var(--border);padding:0 4px;color:var(--muted)}
+.wc{display:flex;align-self:stretch}
+.wc span{width:42px;display:grid;place-items:center;color:var(--muted);font-size:13px}
+
+/* update line */
+.upd{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;padding:5px 12px;background:color-mix(in srgb,var(--warn) 10%,var(--bg));border-bottom:1px solid var(--border);font-size:13px}
+.upd .tag{background:var(--warn);color:var(--bg);font-weight:700;padding:0 6px}
+.upd .sp{margin-left:auto;display:flex;gap:4px}
+.spin::before{content:"⠋";display:inline-block;width:1ch;color:var(--cyan);animation:spin .8s steps(1) infinite}
+@keyframes spin{0%{content:"⠋"}12%{content:"⠙"}25%{content:"⠹"}37%{content:"⠸"}50%{content:"⠼"}62%{content:"⠴"}75%{content:"⠦"}87%{content:"⠧"}}
+
+.screen{min-height:560px}
+.pad{padding:22px 24px;max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.prompt{color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prompt::before{content:"❯ ";color:var(--keyword)}
+.prompt .fl{color:var(--cyan)}
+.cursor{display:inline-block;width:.6em;height:1.1em;margin-left:.3em;vertical-align:text-bottom;background:var(--ok);animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.banner{margin:0;border:0;padding:0;background:linear-gradient(90deg,var(--keyword),var(--accent) 40%,var(--ok) 70%,var(--number));-webkit-background-clip:text;background-clip:text;color:transparent;font:700 13px/1.15 var(--mono);overflow:hidden}
+
+/* titled pane, like a TUI window */
+.box{position:relative;border:1px solid var(--rule);padding:18px 16px 14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.box>.t{position:absolute;top:-.8em;left:10px;background:var(--bg);padding:0 6px;font-size:12px;color:var(--keyword);white-space:nowrap}
+.box>.t::before{content:"┤ ";color:var(--rule)} .box>.t::after{content:" ├";color:var(--rule)}
+.box>.r{position:absolute;top:-.8em;right:10px;background:var(--bg);padding:0 6px;font-size:12px;color:var(--comment);white-space:nowrap}
+.box.on{border-color:var(--ok)} .box.on>.t{color:var(--ok)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:4px 6px;color:var(--text);white-space:nowrap;transition:transform 140ms var(--ease)}
+.btn::before{content:"[";color:var(--comment)} .btn::after{content:"]";color:var(--comment)}
+.btn:hover{background:var(--surface-2)} .btn:active{transform:scale(.97)}
+.btn.primary{color:var(--ok);font-weight:600;text-shadow:0 0 8px rgba(126,231,135,.35)}
+.btn.primary::before,.btn.primary::after{color:var(--ok)}
+.btn.primary:hover{background:var(--ok);color:var(--bg);text-shadow:none} .btn.primary:hover::before,.btn.primary:hover::after{color:var(--bg)}
+.cost{font-size:12px;color:var(--comment);white-space:nowrap}
+.meter{height:10px;background:var(--border);-webkit-mask-image:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 9px);mask-image:repeating-linear-gradient(90deg,#000 0 7px,transparent 7px 9px)}
+.meter i{display:block;height:100%;background:var(--ok)}
+.meter i.low{background:var(--warn)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.grow1{flex:1 1 200px}
+.what{font-size:17px;color:var(--bright);font-weight:600;text-wrap:balance;line-height:1.35}
+
+.ls{display:flex;flex-direction:column}
+.proj{display:grid;grid-template-columns:5ch minmax(0,1.3fr) minmax(0,1fr) 110px 4ch;gap:14px;align-items:center;padding:5px 6px;text-align:left;width:100%;white-space:nowrap}
+.proj>*{overflow:hidden;text-overflow:ellipsis}
+.proj:hover,.proj:focus-visible{background:var(--ok);color:var(--bg)}
+.proj:hover *,.proj:focus-visible *{color:var(--bg)}
+.proj:hover .meter,.proj:focus-visible .meter{background:var(--bg)}
+.proj b{color:var(--accent);font-weight:600}
+.lshead{color:var(--comment);font-size:12px}
+.field{flex:1 1 260px;min-width:0;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--rule);padding:4px 2px}
+.field input{flex:1;min-width:0;background:none;border:0;font:inherit;color:var(--text);caret-color:var(--ok)}
+.field input:focus{outline:none}
+.field:focus-within{border-color:var(--ok)}
+.fine{font-size:12px;color:var(--comment)}
+.fine::before{content:"// "}
+
+.ws{display:grid;grid-template-columns:230px minmax(0,1fr) 310px;gap:14px;padding:20px 14px 14px;min-height:560px}
+.rail{gap:0}
+.lvl{display:flex;gap:8px;padding:3px 4px;text-align:left;color:var(--muted);width:100%;white-space:nowrap}
+.lvl .tree{color:var(--rule)}
+.lvl:hover{color:var(--bright)}
+.lvl[aria-current="true"]{background:var(--surface-2);color:var(--bright)}
+.lvl[aria-current="true"] .nm{color:var(--ok)}
+.lvl.skip .nm{color:var(--comment);text-decoration:line-through}
+.main{padding:0;gap:0}
+.modes{display:flex;gap:4px;padding:14px 16px 0;overflow-x:auto}
+.mode{padding:2px 8px;color:var(--muted);white-space:nowrap}
+.mode[aria-selected="true"]{background:var(--surface-2);color:var(--ok)}
+.mode[aria-selected="true"]::after{content:"*"}
+.lesson{padding:16px;display:flex;flex-direction:column;gap:12px;flex:1}
+.lesson .eyebrow{font-size:12px;color:var(--comment)}
+.lesson h3{margin:0;font-size:17px;color:var(--bright);text-wrap:balance}
+.lesson h3::before{content:"# ";color:var(--keyword);font-weight:400}
+.prose{font-family:var(--prose);font-size:14px;line-height:1.7;max-width:68ch;display:flex;flex-direction:column;gap:10px}
+:root[data-prose="sans"] .prose{font-size:15px}
+.prose code{font-family:var(--mono);font-size:.9em;color:var(--number);background:var(--surface-2);padding:1px 5px}
+pre.code{margin:0;background:var(--code);border-left:2px solid var(--keyword);padding:10px 12px;overflow-x:auto;font:13px/1.6 var(--mono);counter-reset:ln 11}
+pre.code span.l{display:block}
+pre.code span.l::before{counter-increment:ln;content:counter(ln);display:inline-block;width:3ch;margin-right:14px;text-align:right;color:var(--comment)}
+.next{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;justify-content:space-between;padding:8px 16px;border-top:1px dashed var(--rule)}
+.next .arrow::before{content:"→ ";color:var(--ok)}
+.tutor{font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;color:var(--cyan)} .chip::before{content:"@"}
+.chat{display:flex;flex-direction:column;gap:10px;flex:1}
+.who{font-weight:700} .who::after{content:" ❯";font-weight:400;color:var(--comment)}
+.ask{display:flex;gap:8px;border-top:1px dashed var(--rule);padding-top:10px;color:var(--comment)}
+
+.kv{display:grid;grid-template-columns:16ch minmax(0,1fr);gap:2px 14px;font-variant-numeric:tabular-nums}
+.kv dt{color:var(--accent)} .kv dd{margin:0;color:var(--bright)}
+.cm{display:grid;grid-template-columns:minmax(0,1fr) 140px 4ch;gap:14px;align-items:center;padding:3px 0;font-variant-numeric:tabular-nums}
+.todo{display:flex;gap:10px;padding:2px 0}
+
+.keys{display:flex;gap:6px 18px;flex-wrap:wrap;padding:5px 12px;font-size:12px;color:var(--comment);border-top:1px solid var(--border)}
+.keys b{color:var(--number);font-weight:400}
+.status{display:flex;align-items:stretch;height:26px;font-size:12px;background:var(--surface);white-space:nowrap;overflow:hidden}
+.status>*{padding:0 10px;display:flex;align-items:center}
+.status .modeb{background:var(--accent);color:var(--bg);font-weight:700}
+.status .seg2{background:var(--surface-2);color:var(--keyword)}
+.status .grow{flex:1;color:var(--comment);min-width:0;overflow:hidden}
+.status .tok{background:var(--surface-2);color:var(--muted)}
+.status .ver{background:var(--keyword);color:var(--bg);font-weight:700}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:start center;padding:80px 16px 0;z-index:5}
+.pal{width:min(540px,100%);background:var(--bg);border:1px solid var(--ok);box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.palin{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--rule);padding:10px 12px;color:var(--ok)}
+.pal input{flex:1;min-width:0;background:none;border:0;font:inherit;color:var(--bright);caret-color:var(--ok)}
+.pal input:focus{outline:none}
+.pal ul{list-style:none;margin:0;padding:6px;max-height:280px;overflow:auto}
+.pal li{display:flex;justify-content:space-between;gap:12px;padding:4px 8px;color:var(--text);cursor:pointer}
+.pal li[aria-selected="true"]{background:var(--ok);color:var(--bg)}
+.pal li span{color:var(--comment);font-size:12px}
+.pal li[aria-selected="true"] span{color:var(--bg)}
+
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:13px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px 9px 0;border-top:1px solid var(--border)}
+th{color:var(--comment);font-weight:400;border-top:0}
+td:first-child{color:var(--muted)} td:nth-child(2){color:var(--bright)}
+.scroll{overflow-x:auto;margin-top:8px}
+
+/* colour by role: each pane, tab and step has its own syntax colour; green is kept for "done" */
+.box{--c:var(--keyword)}
+.box>.t,.box.on>.t{color:var(--c)} .box.on{border-color:var(--c)}
+#s-projects .box.on{--c:var(--number)} #s-projects .pad>.box:last-child{--c:var(--cyan)}
+.rail{--c:var(--keyword)} .main{--c:var(--accent)} .tutor{--c:var(--ok)} .upd{--c:var(--warn)}
+#s-progress .box:nth-child(2){--c:var(--accent)} #s-progress .box:nth-child(3){--c:var(--keyword)} #s-progress .box:nth-child(4){--c:var(--warn)}
+.btn.primary{color:var(--c,var(--accent));text-shadow:0 0 8px color-mix(in srgb,var(--c,var(--accent)) 40%,transparent)}
+.btn.primary::before,.btn.primary::after{color:var(--c,var(--accent))}
+.btn.primary:hover{background:var(--c,var(--accent));color:var(--bg)}
+.tab:nth-child(1){--tc:var(--accent)} .tab:nth-child(2){--tc:var(--keyword)} .tab:nth-child(3){--tc:var(--number)}
+.tab:hover{color:var(--tc)} .tab[aria-current="page"]{background:var(--tc);color:var(--bg)}
+.mode:nth-child(1){--mc:var(--accent)} .mode:nth-child(2){--mc:var(--number)} .mode:nth-child(3){--mc:var(--keyword)} .mode:nth-child(4){--mc:var(--danger)}
+.mode:hover{color:var(--mc)} .mode[aria-selected="true"]{color:var(--mc);box-shadow:inset 0 -2px 0 var(--mc)}
+.meter i{background:linear-gradient(90deg,var(--keyword),var(--accent) 45%,var(--cyan) 75%,var(--ok))}
+.meter i.low{background:linear-gradient(90deg,var(--danger),var(--warn))}
+.proj:hover,.proj:focus-visible{background:var(--accent)}
+.brand{background:linear-gradient(90deg,var(--keyword),var(--accent),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+.brand .kw{color:var(--number)}
+.cursor{background:var(--number)}
+:focus-visible{outline-color:var(--accent)}
+.lvl[aria-current="true"] .nm,.lvl[aria-current="true"] .acc{color:var(--number)}
+.pal{border-color:var(--keyword)} .palin{color:var(--keyword)} .pal li[aria-selected="true"]{background:var(--keyword)}
+.status .ver{background:var(--number)} .status #path{color:var(--cyan)}
+.seg button[aria-pressed="true"]{color:var(--accent)}
+.kv dt:nth-of-type(2){color:var(--keyword)} .kv dt:nth-of-type(3){color:var(--cyan)} .kv dt:nth-of-type(4){color:var(--number)}
+.field:focus-within{border-color:var(--cyan)}
+.next .arrow::before{color:var(--c)}
+.banner.big{font:400 13px/1.2 var(--mono);margin-top:10px;width:max-content;max-width:100%;background:linear-gradient(100deg,var(--keyword),var(--accent) 35%,var(--cyan) 55%,var(--ok) 75%,var(--number));-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 10px color-mix(in srgb,var(--accent) 25%,transparent))}
+.trail{margin:8px 0 6px;font-size:12px;white-space:nowrap;overflow:hidden}
+@media (max-width:900px){.banner.big{font-size:min(13px,2.6vw)}}
+.t1{color:var(--ok)} .t2{color:var(--number)} .t3{color:var(--cyan)} .t4{color:var(--keyword)}
+@media (max-width:900px){
+  .ws{grid-template-columns:minmax(0,1fr);gap:18px}
+  .rail{flex-direction:row;overflow-x:auto;gap:4px}
+  .lvl{width:auto} .lvl .tree{display:none}
+  .wc,.find .lbl,.status .hide-s,.keys,.proj .hide-s{display:none}
+  .pad{padding:20px 14px}
+  .proj{grid-template-columns:minmax(0,1fr) 4ch}
+  .banner{font-size:9px}
+  .kv{grid-template-columns:11ch minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:active{transform:none}.cursor,.spin::before{animation:none}}
+</style>
+
+<div class="wrap">
+  <div class="note">
+    <div>
+      <h1>Retrace redesign, test design 2</h1>
+      <p>Now drawn as a terminal: titled panes, a file-listing project table, a level tree, tmux tabs and a segmented status line. Try the update line at the top, <kbd>Ctrl</kbd> <kbd>K</kbd>, and <kbd>j</kbd> <kbd>k</kbd> <kbd>1</kbd>–<kbd>4</kbd> in the workspace. All projects and numbers are examples.</p>
+    </div>
+    <div><span class="seg-label">Lesson text</span>
+      <div class="seg" id="prose"><button aria-pressed="true" data-v="mono">monospace</button><button aria-pressed="false" data-v="sans">sans</button></div></div>
+  </div>
+
+  <div class="win" id="win">
+    <div class="bar">
+      <span class="brand glow"><span class="kw" aria-hidden="true">❯ </span>retrace</span>
+      <nav class="tabs" aria-label="Main">
+        <button class="tab" data-s="projects" aria-current="page"><i aria-hidden="true">0:</i>projects</button>
+        <button class="tab" data-s="workspace"><i aria-hidden="true">1:</i>workspace</button>
+        <button class="tab" data-s="progress"><i aria-hidden="true">2:</i>progress</button>
+      </nav>
+      <button class="find" id="openpal"><span class="lbl">run</span><kbd>Ctrl K</kbd></button>
+      <span class="wc" aria-hidden="true"><span>─</span><span>□</span><span>✕</span></span>
+    </div>
+
+    <div class="upd" id="upd" role="status">
+      <span class="tag">update</span>
+      <span id="updtxt">retrace <span class="br">0.2.0</span> is downloaded and ready <span class="dim">· you have 0.1.0</span></span>
+      <span class="sp" id="updbtns"><button class="btn primary" id="updgo">restart and update</button><button class="btn" id="updlater">later</button></span>
+    </div>
+
+    <section class="screen" id="s-projects">
+      <div class="pad">
+        <div>
+          <div class="prompt">retrace <span class="fl">--start</span></div>
+<pre class="banner big" aria-hidden="true">██████╗ ███████╗████████╗██████╗  █████╗  ██████╗███████╗
+██╔══██╗██╔════╝╚══██╔══╝██╔══██╗██╔══██╗██╔════╝██╔════╝
+██████╔╝█████╗     ██║   ██████╔╝███████║██║     █████╗
+██╔══██╗██╔══╝     ██║   ██╔══██╗██╔══██║██║     ██╔══╝
+██║  ██║███████╗   ██║   ██║  ██║██║  ██║╚██████╗███████╗
+╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚══════╝</pre>
+          <div class="trail" aria-hidden="true"><span class="ok">0 ━━ 1 ━━ 2 ━━</span> <span class="num">● 3</span> <span class="dim">┄┄ 4 ┄┄ 5 ┄┄ 6 ┄┄ 7</span></div>
+          <p class="fine">rebuild what you already built, one level at a time</p>
+        </div>
+        <div class="box on">
+          <span class="t">resume</span><span class="r">last opened 2h ago</span>
+          <div class="what">todo-express-react <span class="dim">·</span> level 3 <span class="dim">·</span> login with bcrypt and JWT</div>
+          <div class="row"><div class="meter grow1" role="img" aria-label="3 of 8 levels done"><i style="width:37%"></i></div><span class="mut">3/8 levels</span></div>
+          <div class="row"><button class="btn primary" data-go="workspace">continue the tour</button><span class="cost">lesson cached · 0 tokens</span></div>
+        </div>
+        <div>
+          <div class="prompt">ls <span class="fl">-l</span> projects/</div>
+          <div class="ls">
+            <div class="proj lshead" aria-hidden="true"><span>total 2</span><span></span><span class="hide-s"></span><span class="hide-s"></span><span></span></div>
+            <button class="proj" data-go="workspace"><span class="dim hide-s">drwx</span><b>todo-express-react/</b><span class="mut hide-s"><span class="t1">express</span> <span class="t2">sqlite</span> <span class="t3">react</span> · 15 files</span><span class="meter hide-s"><i style="width:37%"></i></span><span class="mut">3/8</span></button>
+            <button class="proj" data-go="workspace"><span class="dim hide-s">drwx</span><b>flask-notes/</b><span class="mut hide-s"><span class="t4">flask</span> <span class="t2">sqlite</span> · 8 files</span><span class="meter hide-s"><i style="width:0"></i></span><span class="mut">0/6</span></button>
+          </div>
+        </div>
+        <div class="box">
+          <span class="t">add a project</span>
+          <div class="row">
+            <button class="btn">choose a zip</button><span class="dim">or</span>
+            <label class="field"><span class="kw">url ❯</span><input id="gh" aria-label="GitHub repository link" placeholder="https://github.com/owner/repo"></label>
+            <button class="btn">fetch</button>
+          </div>
+          <p class="fine">secrets are removed before anything is stored. code excerpts go to the Anthropic API when the tutor answers.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="s-workspace" hidden>
+      <div class="ws">
+        <aside class="box rail" id="rail" aria-label="Levels">
+          <span class="t">levels</span><span class="r">3/8</span>
+          <button class="lvl"><span class="tree" aria-hidden="true">├─</span><span class="ok">✓</span><span class="nm">0 setup</span></button>
+          <button class="lvl"><span class="tree" aria-hidden="true">├─</span><span class="ok">✓</span><span class="nm">1 server</span></button>
+          <button class="lvl"><span class="tree" aria-hidden="true">├─</span><span class="ok">✓</span><span class="nm">2 database</span></button>
+          <button class="lvl" aria-current="true"><span class="tree" aria-hidden="true">├─</span><span class="acc">●</span><span class="nm">3 login</span></button>
+          <button class="lvl"><span class="tree" aria-hidden="true">├─</span><span>○</span><span class="nm">4 todo routes</span></button>
+          <button class="lvl"><span class="tree" aria-hidden="true">├─</span><span>○</span><span class="nm">5 react client</span></button>
+          <button class="lvl skip"><span class="tree" aria-hidden="true">├─</span><span>–</span><span class="nm">6 tests</span></button>
+          <button class="lvl"><span class="tree" aria-hidden="true">└─</span><span>○</span><span class="nm">7 deploy config</span></button>
+        </aside>
+        <div class="box main on">
+          <span class="t" id="panet">server/auth.js</span><span class="r">level 3</span>
+          <div class="modes" role="tablist" id="modes">
+            <button class="mode" role="tab" aria-selected="true" data-m="tour">1:tour</button>
+            <button class="mode" role="tab" aria-selected="false" data-m="rebuild">2:rebuild</button>
+            <button class="mode" role="tab" aria-selected="false" data-m="quiz">3:quiz</button>
+            <button class="mode" role="tab" aria-selected="false" data-m="audit">4:audit</button>
+          </div>
+          <div class="lesson" id="pane"></div>
+          <div class="next"><span class="mut arrow" id="nexttxt"></span><span class="row"><span class="cost" id="nextcost"></span><button class="btn primary" id="nextbtn"></button></span></div>
+        </div>
+        <aside class="box tutor" aria-label="Tutor">
+          <span class="t">tutor</span><span class="r">4.1k tokens</span>
+          <div class="chips"><span class="chip">level-3</span><span class="chip">server/auth.js:12-18</span></div>
+          <div class="chat">
+            <div><span class="who acc">you</span> <span class="br">why hash with 10 rounds and not more?</span></div>
+            <div><span class="who ok">tutor</span> Each extra round doubles the work. Ten is slow enough to hurt someone guessing passwords and fast enough that login still feels instant.</div>
+          </div>
+          <div class="ask"><span class="ok">❯</span><span>ask about the open file<span class="cursor" aria-hidden="true"></span></span></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" id="s-progress" hidden>
+      <div class="pad">
+        <div class="prompt">retrace <span class="fl">--stats</span></div>
+        <div class="box">
+          <span class="t">summary</span>
+          <dl class="kv" style="margin:0">
+            <dt>levels</dt><dd>3 / 8 rebuilt</dd>
+            <dt>quiz average</dt><dd>82%</dd>
+            <dt>concepts</dt><dd>14 seen · 2 weak</dd>
+            <dt>tokens (week)</dt><dd>61k · 71% from cache</dd>
+          </dl>
+        </div>
+        <div class="box">
+          <span class="t">concepts</span><span class="r">weakest first</span>
+          <div>
+            <div class="cm"><span>JWT expiry</span><div class="meter"><i class="low" style="width:20%"></i></div><span class="warn">20</span></div>
+            <div class="cm"><span>password hashing</span><div class="meter"><i class="low" style="width:35%"></i></div><span class="warn">35</span></div>
+            <div class="cm"><span>express middleware</span><div class="meter"><i style="width:65%"></i></div><span>65</span></div>
+            <div class="cm"><span>SQL parameters</span><div class="meter"><i style="width:80%"></i></div><span>80</span></div>
+          </div>
+        </div>
+        <div class="box">
+          <span class="t">still open</span>
+          <div>
+            <div class="todo"><span class="dim">[ ]</span><span>Add rate limiting to the login route</span></div>
+            <div class="todo"><span class="dim">[ ]</span><span>Move the JWT secret out of the source file</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="keys" aria-hidden="true"><span><b>j/k</b> level</span><span><b>1-4</b> step</span><span><b>ctrl+k</b> run</span><span><b>:</b> command line</span><span><b>esc</b> close</span></div>
+    <div class="status">
+      <span class="modeb">NORMAL</span>
+      <span class="seg2 hide-s" id="seg">home</span>
+      <span class="acc hide-s" id="path">~/projects</span>
+      <span class="grow">:<span class="cursor" aria-hidden="true"></span></span>
+      <span class="tok">12.4k in · 3.1k out · 71% cached</span>
+      <span class="ver" id="ver">v0.1.0</span>
+      <span class="kw hide-s">14:32</span>
+    </div>
+
+    <div class="scrim" id="scrim" hidden>
+      <div class="pal" role="dialog" aria-label="Run a command">
+        <div class="palin"><span aria-hidden="true">❯</span><input id="palq" aria-label="Run a command" placeholder="run…" autocomplete="off" spellcheck="false"></div>
+        <ul id="pall" role="listbox"></ul>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h2>What changed since test design 1</h2>
+    <div class="scroll"><table>
+      <tr><th>Before</th><th>After</th><th>Why</th></tr>
+      <tr><td>Rounded cards with a green side stripe</td><td>Square panes with the title set into the border; the active pane is green</td><td>Reads as a terminal UI, and shows which pane has focus</td></tr>
+      <tr><td>Project cards</td><td>An <code>ls -l</code> listing; the hovered row inverts</td><td>Selection looks like a terminal menu</td></tr>
+      <tr><td>Flat level list</td><td>A level tree with branch lines</td><td>The order reads as a path</td></tr>
+      <tr><td>Plain tabs</td><td><code>0:projects*</code> tabs, the active one inverted</td><td>Keeps the tmux look you already had</td></tr>
+      <tr><td>Chat bubbles by indentation</td><td><code>you ❯</code> and <code>tutor ❯</code> lines with <code>@</code> context tags</td><td>The chat reads as a session log</td></tr>
+      <tr><td>Stat tiles</td><td>A key and value summary, like a system info printout</td><td>Same facts, in the theme</td></tr>
+      <tr><td>No update path</td><td>An update line under the title bar and the version in the status line</td><td>One click to restart on the new version</td></tr>
+      <tr><td>Shortcuts hidden</td><td>A key-hint row above the status line</td><td>Terminal apps show their keys</td></tr>
+    </table></div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const screens=["projects","workspace","progress"];
+let cur="projects";
+function show(name){
+  if(!screens.includes(name))name="projects";cur=name;
+  screens.forEach(s=>{$("#s-"+s).hidden=s!==name});
+  $$(".tab").forEach(t=>t.dataset.s===name?t.setAttribute("aria-current","page"):t.removeAttribute("aria-current"));
+  $("#path").textContent=name==="workspace"?"~/projects/todo-express-react":"~/"+name;
+  $("#seg").textContent=name==="workspace"?"level 3":name==="progress"?"stats":"home";
+  if(location.hash.slice(1)!==name){try{history.replaceState(null,"","#"+name)}catch(e){}}
+}
+$$(".tab").forEach(t=>t.onclick=()=>show(t.dataset.s));
+$$("[data-go]").forEach(b=>b.onclick=()=>show(b.dataset.go));
+addEventListener("hashchange",()=>show(location.hash.slice(1)));
+
+const L=s=>s.split("\n").map(x=>`<span class="l">${x}</span>`).join("");
+const M={
+ tour:{t:"server/auth.js",html:`<span class="eyebrow">level 3 · 2 files · lesson 1 of 6 parts</span><h3>Login: prove who is asking</h3>
+  <div class="prose"><p>Until now every request was anonymous. This level adds the two things a login needs: a safe way to store a password, and a token the browser can show on later requests.</p>
+  <p>The password is never saved. <code>bcrypt.hash</code> turns it into a value that cannot be turned back, and login compares hashes instead of text.</p></div>
+  <pre class="code">${L(`<span class="kw">const</span> hash = <span class="kw">await</span> bcrypt.<span class="acc">hash</span>(password, <span class="num">10</span>);
+db.<span class="acc">prepare</span>(<span class="ok">"INSERT INTO users (email, hash) VALUES (?, ?)"</span>)
+  .<span class="acc">run</span>(email, hash);`)}</pre>`,
+  next:"write this level yourself from a spec",cost:"about 6k tokens",btn:"start rebuild",to:"rebuild"},
+ rebuild:{t:"server/auth.js (yours)",html:`<span class="eyebrow">level 3 · rebuild from spec</span><h3>Write register and login without looking</h3>
+  <div class="prose"><p>The spec lists what each route must accept, return and refuse. Your editor opens here with the earlier levels in place and the files for this level empty.</p></div>
+  <pre class="code">${L(`<span class="kw">export async function</span> <span class="acc">register</span>(req, res) {
+  <span class="dim">// 1. reject a missing email or a short password</span>
+}`)}</pre>`,next:"have the tutor review what you wrote",cost:"about 5k tokens",btn:"review my code",to:"quiz"},
+ quiz:{t:"quiz",html:`<span class="eyebrow">level 3 · question 2 of 5</span><h3>What does the server keep after a user registers?</h3>
+  <div class="prose"><p><span class="dim">( )</span> the password, encrypted with the JWT secret</p><p><span class="ok">(•)</span> a bcrypt hash of the password</p><p><span class="dim">( )</span> the password and a salt in two columns</p></div>`,
+  next:"check this answer",cost:"about 0.4k tokens",btn:"submit answer",to:"audit"},
+ audit:{t:"audit",html:`<span class="eyebrow">level 3 · 2 findings</span><h3>What a reviewer would flag here</h3>
+  <div class="prose"><p><span class="warn">[warn]</span> <code>server/auth.js:31</code> the JWT secret is written in the source file.</p><p><span class="warn">[warn]</span> <code>server/auth.js:22</code> nothing limits how often login can be tried.</p></div>`,
+  next:"level 4, todo routes",cost:"about 3k tokens",btn:"go to level 4",to:"tour"}
+};
+const order=["tour","rebuild","quiz","audit"];
+function mode(m){const d=M[m];$("#pane").innerHTML=d.html;$("#panet").textContent=d.t;$("#nexttxt").textContent=d.next;$("#nextcost").textContent=d.cost;$("#nextbtn").textContent=d.btn;$("#nextbtn").onclick=()=>mode(d.to);
+  $$(".mode").forEach(b=>b.setAttribute("aria-selected",b.dataset.m===m));}
+$$(".mode").forEach(b=>b.onclick=()=>mode(b.dataset.m));
+const lvls=$$(".lvl");
+function level(i){i=Math.max(0,Math.min(lvls.length-1,i));lvls.forEach((x,n)=>n===i?x.setAttribute("aria-current","true"):x.removeAttribute("aria-current"))}
+lvls.forEach((b,i)=>b.onclick=()=>level(i));
+$$("#prose button").forEach(b=>b.onclick=()=>{document.documentElement.dataset.prose=b.dataset.v;$$("#prose button").forEach(x=>x.setAttribute("aria-pressed",x===b))});
+
+$("#updlater").onclick=()=>{$("#upd").hidden=true};
+$("#updgo").onclick=()=>{
+  $("#updbtns").hidden=true;$("#updtxt").innerHTML=`<span class="spin"></span> installing 0.2.0, the app restarts on its own…`;
+  setTimeout(()=>{$("#updtxt").innerHTML=`<span class="ok">✓</span> restarted on <span class="br">0.2.0</span> <span class="dim">· your projects and progress are untouched</span>`;$("#ver").textContent="v0.2.0";
+    setTimeout(()=>{$("#upd").hidden=true},3500)},1800);
+};
+
+const CMDS=[["projects","go to your projects",()=>show("projects")],["workspace","open todo-express-react",()=>show("workspace")],["progress","levels, concepts, tokens",()=>show("progress")],
+ ["tour","read the lesson for this level",()=>{show("workspace");mode("tour")}],["rebuild","write this level yourself",()=>{show("workspace");mode("rebuild")}],
+ ["quiz","five questions on this level",()=>{show("workspace");mode("quiz")}],["audit","security findings",()=>{show("workspace");mode("audit")}]];
+let sel=0,shown=CMDS;
+function draw(){const q=$("#palq").value.trim().toLowerCase();shown=CMDS.filter(c=>(c[0]+" "+c[1]).includes(q));sel=Math.min(sel,Math.max(shown.length-1,0));
+  $("#pall").innerHTML=shown.map((c,i)=>`<li role="option" aria-selected="${i===sel}" data-i="${i}">${c[0]}<span>${c[1]}</span></li>`).join("")||`<li><span>no match</span></li>`;
+  $$("#pall li[data-i]").forEach(li=>li.onclick=()=>run(+li.dataset.i));}
+function run(i){if(shown[i]){shown[i][2]();pal(false)}}
+function pal(open){$("#scrim").hidden=!open;if(open){$("#palq").value="";sel=0;draw();$("#palq").focus()}}
+$("#openpal").onclick=()=>pal(true);
+$("#scrim").onclick=e=>{if(e.target.id==="scrim")pal(false)};
+$("#palq").oninput=()=>{sel=0;draw()};
+addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();pal($("#scrim").hidden);return}
+  if(!$("#scrim").hidden){
+    if(e.key==="Escape")pal(false);
+    else if(e.key==="ArrowDown"){e.preventDefault();sel=Math.min(sel+1,shown.length-1);draw()}
+    else if(e.key==="ArrowUp"){e.preventDefault();sel=Math.max(sel-1,0);draw()}
+    else if(e.key==="Enter")run(sel);
+    return}
+  if(cur!=="workspace"||e.target.closest("input,textarea")||e.ctrlKey||e.metaKey||e.altKey)return;
+  const at=lvls.findIndex(x=>x.hasAttribute("aria-current"));
+  if(e.key==="j")level(at+1);else if(e.key==="k")level(at-1);
+  else if("1234".includes(e.key))mode(order[+e.key-1]);
+});
+mode("tour");show(location.hash.slice(1)||"projects");
+</script>

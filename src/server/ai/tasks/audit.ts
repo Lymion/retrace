@@ -2,7 +2,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { type Db, getDb } from "@/db/client";
 import { files, findings, levels } from "@/db/schema";
 import { SecurityAuditSchema } from "@/shared/contracts";
-import { SEVERITIES } from "@/shared/enums";
+import { type Layer, SEVERITIES } from "@/shared/enums";
 import { notFound } from "../../http";
 import { getSettings } from "../../settings";
 import { codeBundle } from "../code-bundle";
@@ -10,10 +10,14 @@ import { buildTutorRequest } from "../context";
 import { runJsonTask } from "../json";
 import type { AIProvider } from "../provider";
 import { renderPrompt } from "../prompts";
+import { modelFor } from "../models";
 import { getActiveProvider } from "../registry";
 
 // security_audit: per level or for the whole project. Findings replace the
 // previous audit of the same scope, and only point at files that exist.
+
+/** Layers the project-wide audit sends in full; the rest go as outlines. */
+const AUDIT_FULL_LAYERS: Layer[] = ["security", "backend", "database", "config"];
 
 /** SEVERITIES runs low -> critical, so a higher index is worse. */
 const severityRank = (s: (typeof SEVERITIES)[number]) => SEVERITIES.indexOf(s);
@@ -64,12 +68,18 @@ export async function runAudit(
     scope = `level ${level.number} (${level.name})`;
   }
 
-  const bundle = codeBundle(db, { projectId, levelId, maxLines: levelId ? 1500 : 3000 });
+  const bundle = codeBundle(db, {
+    projectId,
+    levelId,
+    maxLines: levelId ? 1500 : 3000,
+    // Project-wide, send only the layers where security problems live in full.
+    fullLayers: levelId ? undefined : AUDIT_FULL_LAYERS,
+  });
   const request = buildTutorRequest({
     db,
     projectId,
     task: "security_audit",
-    model: settings.tutorModel,
+    model: modelFor(settings, "tutor"),
     instructions: renderPrompt("security_audit", {
       learner_name: settings.learnerName,
       scope,

@@ -5,6 +5,7 @@ import { getSettings } from "../settings";
 import type { AIProvider } from "./provider";
 import { createApiKeyProvider } from "./providers/api-key";
 import { createClaudeLoginProvider } from "./providers/claude-login";
+import { recordUsage } from "./usage";
 
 // Holds one instance of each provider. The active one is read from the
 // settings table on every call, never cached, so a switch in Settings
@@ -17,8 +18,14 @@ let override: Partial<Providers> | undefined;
 
 function build(): Providers {
   return {
-    "api-key": createApiKeyProvider({ getKey: () => getEnv().ANTHROPIC_API_KEY }),
-    "claude-login": createClaudeLoginProvider({ pingModel: () => getSettings().fastModel }),
+    "api-key": createApiKeyProvider({
+      getKey: () => getEnv().ANTHROPIC_API_KEY,
+      onUsage: (report) => recordUsage(report),
+    }),
+    "claude-login": createClaudeLoginProvider({
+      pingModel: () => getSettings().fastModel,
+      onUsage: (report) => recordUsage(report),
+    }),
   };
 }
 

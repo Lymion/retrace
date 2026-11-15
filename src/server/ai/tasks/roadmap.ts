@@ -12,6 +12,7 @@ import { buildTutorRequest, fileBlock } from "../context";
 import { runJsonTask } from "../json";
 import type { AIProvider } from "../provider";
 import { renderPrompt } from "../prompts";
+import { modelFor } from "../models";
 import { getActiveProvider } from "../registry";
 
 // roadmap: file tree + import graph + README + git log -> levels.
@@ -223,7 +224,7 @@ export async function generateRoadmap(
     db,
     projectId,
     task: "roadmap",
-    model: getSettings(db).tutorModel,
+    model: modelFor(getSettings(db), "tutor"),
     instructions: renderPrompt("roadmap", {
       level_template: templateTable(levelsFor(project.profile)),
       project_data: projectData(db, projectId, draft),
