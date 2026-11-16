@@ -46,42 +46,52 @@ export function LevelSidebar({
   });
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       {levels.length > 0 && (
         <nav
           aria-label="Levels"
-          className="max-h-[45%] shrink-0 overflow-auto border-b border-border p-2"
+          className="max-h-[45%] shrink-0 overflow-auto border-b border-dashed border-rule px-2 pb-2"
         >
-          <ol className="space-y-0.5">
-            {levels.map((level) => {
+          <ol>
+            {levels.map((level, i) => {
               const active = level.id === levelId;
               const dimmed = dimAfter !== null && level.number > dimAfter;
+              const done = level.status === "done";
+              const mark = done ? "✓" : level.skipped ? "–" : active ? "●" : "○";
+              const state = done
+                ? "done"
+                : level.skipped
+                  ? "skipped in this project"
+                  : level.status === "not_started"
+                    ? "not started"
+                    : "in progress";
               return (
                 <li key={level.id}>
                   <button
                     type="button"
                     onClick={() => onLevel(level.id)}
                     aria-current={active ? "step" : undefined}
-                    className={`flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left text-sm ${
-                      active ? "bg-ok/15 text-bright" : "hover:bg-surface-2"
+                    className={`flex w-full items-center gap-2 px-1 py-0.5 text-left text-sm whitespace-nowrap ${
+                      active ? "bg-surface-2 text-bright" : "text-muted hover:text-bright"
                     } ${dimmed ? "opacity-40" : ""}`}
                   >
-                    <span aria-hidden className="w-3 shrink-0 text-xs text-ok">
-                      {active ? "❯" : ""}
+                    <span aria-hidden className="shrink-0 text-rule">
+                      {i === levels.length - 1 ? "└─" : "├─"}
                     </span>
                     <span
-                      className={`shrink-0 rounded-sm px-1 text-[11px] font-bold ${
-                        level.status === "done"
-                          ? "bg-ok text-bg"
-                          : level.skipped
-                            ? "text-warn"
-                            : "bg-surface-2 text-keyword"
+                      aria-hidden
+                      className={`w-[1ch] shrink-0 ${done ? "text-ok" : active ? "text-number" : "text-comment"}`}
+                    >
+                      {mark}
+                    </span>
+                    <span
+                      className={`truncate ${active ? "text-number" : ""} ${
+                        level.skipped ? "text-comment line-through" : ""
                       }`}
                     >
-                      {String(level.number).padStart(2, "0")}
+                      {level.number} {level.name}
                     </span>
-                    <span className={`truncate ${active ? "glow" : ""}`}>{level.name}</span>
-                    {level.skipped && <span className="sr-only">(skipped in this project)</span>}
+                    <span className="sr-only">({state})</span>
                   </button>
                 </li>
               );

@@ -24,7 +24,11 @@ import {
 /** Announced by a screen to name where the learner is in the status line. */
 export const PLACE_EVENT = "retrace:place";
 
+/** The last place announced, for a status line that mounts after the screen. */
+let lastPlace: { path: string; label: string } | null = null;
+
 export function announcePlace(label: string) {
+  lastPlace = { path: window.location.pathname, label };
   window.dispatchEvent(new CustomEvent(PLACE_EVENT, { detail: label }));
 }
 
@@ -77,8 +81,8 @@ export function StatusBar() {
   // Where the learner is, e.g. "level 3". The workspace announces its level.
   const [place, setPlace] = useState<{ path: string; label: string } | null>(null);
   useEffect(() => {
-    const onPlace = (event: Event) =>
-      setPlace({ path: window.location.pathname, label: (event as CustomEvent<string>).detail });
+    const onPlace = () => setPlace(lastPlace);
+    onPlace();
     window.addEventListener(PLACE_EVENT, onPlace);
     return () => window.removeEventListener(PLACE_EVENT, onPlace);
   }, []);

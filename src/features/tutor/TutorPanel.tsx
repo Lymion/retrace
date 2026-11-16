@@ -32,6 +32,8 @@ export function TutorPanel({
   filePaths,
   onOpenFile,
   panel,
+  controlRef,
+  onLessonLevels,
 }: {
   projectId: number;
   level: LevelView | null;
@@ -40,6 +42,10 @@ export function TutorPanel({
   filePaths: Set<string>;
   onOpenFile: (path: string, line: number | null) => void;
   panel: ReturnType<typeof usePanelPlacement>;
+  /** Lets the workspace's next-step bar start the tour. */
+  controlRef?: React.RefObject<{ teach: () => void } | null>;
+  /** Tells the workspace which levels already have a saved lesson. */
+  onLessonLevels?: (levelNumbers: number[]) => void;
 }) {
   const history = useFetch<{ messages: ChatMessage[] }>(`/api/projects/${projectId}/messages`);
   const [added, setAdded] = useState<ChatMessage[]>([]);
@@ -122,6 +128,17 @@ export function TutorPanel({
   const hasLesson =
     level !== null && messages.some((m) => m.kind === "lesson" && m.levelNumber === level.number);
 
+  const lessonKey = messages
+    .filter((m) => m.kind === "lesson" && m.levelNumber != null)
+    .map((m) => m.levelNumber!)
+    .join(",");
+  useEffect(() => {
+    onLessonLevels?.(lessonKey ? lessonKey.split(",").map(Number) : []);
+  }, [lessonKey, onLessonLevels]);
+  useEffect(() => {
+    if (controlRef) controlRef.current = { teach: () => teachLevel() };
+  });
+
   function teachLevel(regenerate = false) {
     if (!level || busy) return;
     void run(
@@ -158,17 +175,17 @@ export function TutorPanel({
     <section
       aria-label="Tutor"
       style={floatingStyle}
-      className={`flex min-h-0 flex-col bg-surface ${
-        placement.floating ? "fixed z-40 rounded-lg border border-border shadow-2xl" : "h-full"
+      className={`c-ok flex min-h-0 flex-1 flex-col text-[13px] ${
+        placement.floating ? "fixed z-40 border border-ok bg-bg shadow-2xl" : "h-full"
       }`}
     >
       <header
         onPointerDown={startDrag}
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
-        className={`flex items-center gap-2 border-b border-border px-3 py-2 ${placement.floating ? "cursor-move" : ""}`}
+        className={`flex items-center gap-2 px-3 pb-1 ${placement.floating ? "cursor-move pt-2" : ""}`}
       >
-        <h2 className="text-sm font-semibold">Tutor</h2>
+        <h2 className={placement.floating ? "text-sm font-semibold text-ok" : "sr-only"}>Tutor</h2>
         {placement.floating && (
           <button
             type="button"
@@ -200,30 +217,29 @@ export function TutorPanel({
         </div>
       </header>
 
-      <div
-        className="flex flex-wrap gap-1 border-b border-border px-3 py-1.5"
+      <p
+        className="flex flex-wrap gap-x-2 gap-y-0.5 px-3 pb-1.5 text-xs text-cyan"
         aria-label="What the tutor can see"
       >
-        {level ? (
-          <span className="chip">
-            Level {level.number}: {level.name}
+        <span className="sr-only">The tutor can see: </span>
+        <span>
+          <span aria-hidden>@</span>
+          {level ? `level-${level.number}` : "no-level"}
+        </span>
+        {file && (
+          <span className="max-w-full truncate">
+            <span aria-hidden>@</span>
+            {file.path}
+            {selection ? `:${selection.startLine}-${selection.endLine}` : ""}
           </span>
-        ) : (
-          <span className="chip">No level</span>
         )}
-        {file && <span className="chip max-w-full truncate font-mono">{file.path}</span>}
-        {selection && (
-          <span className="chip text-accent">
-            Lines {selection.startLine}-{selection.endLine} selected
-          </span>
-        )}
-      </div>
+      </p>
 
       <div
         ref={logRef}
         role="log"
         aria-live="polite"
-        className="min-h-0 flex-1 space-y-3 overflow-auto px-3 py-3"
+        className="min-h-0 flex-1 space-y-3 overflow-auto border-t border-dashed border-rule px-3 py-3"
       >
         {history.loading && <Spinner label="Loading the conversation…" />}
         {history.error && <ErrorState message={history.error} onRetry={history.reload} />}
@@ -239,10 +255,16 @@ export function TutorPanel({
           <MessageBubble key={m.id} message={m} filePaths={filePaths} onOpenFile={onOpenFile} />
         ))}
         {pending && (
-          <div className="border-l-2 border-keyword/50 pl-3">
-            {pending.kind === "lesson" && (
-              <p className="mb-1 text-xs text-comment"># lesson · level {pending.levelNumber}</p>
-            )}
+          <div>
+            <p className="text-xs">
+              <span className="font-bold text-ok">tutor</span>
+              <span aria-hidden className="text-comment">
+                {" ❯"}
+              </span>
+              {pending.kind === "lesson" && (
+                <span className="text-comment"> lesson · level {pending.levelNumber}</span>
+              )}
+            </p>
             {pending.text ? (
               <Markdown filePaths={filePaths} onOpenFile={onOpenFile}>
                 {pending.text}
@@ -259,7 +281,7 @@ export function TutorPanel({
         )}
       </div>
 
-      <div className="space-y-2 border-t border-border p-3">
+      <div className="space-y-2 border-t border-dashed border-rule p-3">
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -309,7 +331,7 @@ export function TutorPanel({
           className="flex items-end gap-2"
         >
           <span aria-hidden className="glow self-start pt-1.5 font-bold text-ok">
-            ❯
+            ❯{!draft && !busy && <span className="cursor" />}
           </span>
           <label htmlFor="tutor-input" className="sr-only">
             Message the tutor
@@ -350,22 +372,27 @@ function MessageBubble({
 }) {
   if (message.role === "user") {
     return (
-      <div className="flex gap-2 text-sm">
-        <span aria-hidden className="shrink-0 font-bold text-ok">
-          ❯
+      <p className="min-w-0 whitespace-pre-wrap text-bright">
+        <span className="font-bold text-accent">you</span>
+        <span aria-hidden className="text-comment">
+          {" ❯ "}
         </span>
-        <p className="min-w-0 whitespace-pre-wrap text-bright">
-          <span className="sr-only">You: </span>
-          {message.content}
-        </p>
-      </div>
+        <span className="sr-only">: </span>
+        {message.content}
+      </p>
     );
   }
   return (
-    <div className="border-l-2 border-keyword/50 pl-3">
-      {message.kind === "lesson" && (
-        <p className="mb-1 text-xs text-comment"># lesson · level {message.levelNumber ?? "?"}</p>
-      )}
+    <div>
+      <p className="text-xs">
+        <span className="font-bold text-ok">tutor</span>
+        <span aria-hidden className="text-comment">
+          {" ❯"}
+        </span>
+        {message.kind === "lesson" && (
+          <span className="text-comment"> lesson · level {message.levelNumber ?? "?"}</span>
+        )}
+      </p>
       <Markdown filePaths={filePaths} onOpenFile={onOpenFile}>
         {message.content}
       </Markdown>

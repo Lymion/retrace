@@ -49,7 +49,11 @@ export function ProviderPanel() {
   }
 
   return (
-    <section id="provider" aria-labelledby="provider-heading" className="card space-y-4 p-5">
+    <section
+      id="provider"
+      aria-labelledby="provider-heading"
+      className="card c-accent space-y-4 p-5"
+    >
       <div className="flex items-center gap-3">
         <h2 id="provider-heading" className="mr-auto text-lg font-semibold">
           AI provider

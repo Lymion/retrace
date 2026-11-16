@@ -3,13 +3,15 @@ import { and, count, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { learningEvents, levels, projects } from "@/db/schema";
 import { EmptyState } from "@/components/states";
-import { PageHeader } from "@/components/terminal";
+import { Pane, PromptLine } from "@/components/terminal";
 import { Checklist } from "@/features/progress/Checklist";
 import { ConceptMastery } from "@/features/progress/ConceptMastery";
 import { formatDate } from "@/lib/format";
+import { formatTokens, totalTokens } from "@/lib/tokens";
 import { listChecklist } from "@/server/ai/tasks/insights";
 import { quizHistory } from "@/server/ai/tasks/quiz";
 import { listProfile } from "@/server/learner/profile";
+import { cachedPercent, usageSummary } from "@/server/ai/usage";
 
 export const metadata = { title: "Progress · Retrace" };
 
@@ -52,14 +54,49 @@ export default function ProgressPage() {
       .from(learningEvents)
       .where(and(eq(learningEvents.kind, "chat"), isNull(learningEvents.processedAt)))
       .get()?.n ?? 0;
+  const week = usageSummary(db).week;
+  const answered = quizzes.filter((q) => q.answered > 0);
+  const quizAverage = answered.length
+    ? Math.round((answered.reduce((n, q) => n + q.correct / q.answered, 0) / answered.length) * 100)
+    : null;
+  const levelsDone = progress.reduce((n, p) => n + p.done, 0);
+  const levelsTotal = progress.reduce((n, p) => n + p.total, 0);
+  const weak = concepts.filter((c) => c.mastery < 0.4).length;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-6">
-      <PageHeader path={[{ label: "progress" }]} title="Progress">
-        What you have built, what you have mastered, and what to practise next.
-      </PageHeader>
+    <div className="mx-auto w-full max-w-5xl space-y-7 p-4 sm:p-6">
+      <header>
+        <PromptLine command="retrace" flags="--stats" />
+        <h1 className="mt-1 text-xl font-bold text-bright">Progress</h1>
+        <p className="text-sm text-comment">
+          <span aria-hidden>{"// "}</span>
+          What you have built, what you have mastered, and what to practise next.
+        </p>
+      </header>
 
-      <section aria-labelledby="levels-progress" className="card space-y-3 p-5">
+      <Pane title="summary" role="accent">
+        <dl className="grid grid-cols-[13ch_minmax(0,1fr)] gap-x-4 gap-y-0.5 tabular-nums sm:grid-cols-[16ch_minmax(0,1fr)]">
+          <dt className="text-accent">levels</dt>
+          <dd className="text-bright">
+            {levelsDone} / {levelsTotal} done
+          </dd>
+          <dt className="text-keyword">quiz average</dt>
+          <dd className="text-bright">
+            {quizAverage === null ? "no quizzes yet" : `${quizAverage}%`}
+          </dd>
+          <dt className="text-cyan">concepts</dt>
+          <dd className="text-bright">
+            {concepts.length} seen · {weak} weak
+          </dd>
+          <dt className="text-number">tokens (week)</dt>
+          <dd className="text-bright">
+            {formatTokens(totalTokens(week))}
+            {week.calls > 0 && ` · ${cachedPercent(week)}% from cache`}
+          </dd>
+        </dl>
+      </Pane>
+
+      <section aria-labelledby="levels-progress" className="card c-keyword space-y-3 p-5">
         <h2 id="levels-progress" className="text-lg font-semibold">
           Levels completed
         </h2>
@@ -87,7 +124,7 @@ export default function ProgressPage() {
                   aria-valuemax={p.total}
                   aria-valuenow={p.done}
                 >
-                  <div className="h-full bg-ok" style={{ width: `${(p.done / p.total) * 100}%` }} />
+                  <div className="bar-fill" style={{ width: `${(p.done / p.total) * 100}%` }} />
                 </div>
               </li>
             ))}
@@ -97,7 +134,7 @@ export default function ProgressPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ConceptMastery concepts={concepts} pendingQuestions={pending} />
-        <section aria-labelledby="quiz-history" className="card space-y-3 p-5">
+        <section aria-labelledby="quiz-history" className="card c-number space-y-3 p-5">
           <h2 id="quiz-history" className="text-lg font-semibold">
             Recent quizzes
           </h2>

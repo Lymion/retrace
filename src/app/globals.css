@@ -302,11 +302,13 @@ body {
 }
 
 /* Section headings read like markdown in a terminal: "## Level map". */
-h2:not(.pane-title)::before {
-  content: "## ";
-  content: "## " / "";
-  color: var(--keyword);
-  font-weight: 400;
+@layer base {
+  h2:not(.pane-title)::before {
+    content: "## ";
+    content: "## " / "";
+    color: var(--keyword);
+    font-weight: 400;
+  }
 }
 
 /* A faint glow, for prompts, titles and the active tab. A utility, so
@@ -627,4 +629,65 @@ h2:not(.pane-title)::before {
 }
 .titlebar {
   padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+}
+
+@layer components {
+  /* A pane whose content fills it edge to edge (code, lists, the tutor). */
+  .pane-flush {
+    display: flex;
+    flex-direction: column;
+    padding: 0.95rem 0 0;
+  }
+  .pane-flush > :not(.pane-title, .pane-note) {
+    min-height: 0;
+  }
+
+  /* Every .card whose first child is (or starts with) an h2 becomes a pane:
+   the heading is set into the top border, in the card's role colour. This
+   restyles settings, progress, the project page and the step screens
+   without changing their markup. */
+  .card {
+    position: relative;
+    border-color: var(--rule);
+    background: transparent;
+    --c: var(--keyword);
+  }
+  .card:focus-within {
+    border-color: var(--c);
+  }
+  .card > h2:first-child,
+  .card > :first-child > h2:first-child {
+    position: absolute;
+    top: -0.8em;
+    left: 0.6rem;
+    max-width: calc(100% - 2rem);
+    margin: 0;
+    overflow: hidden;
+    padding: 0 0.4rem;
+    background: var(--bg);
+    color: var(--c);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .card > h2:first-child::before,
+  .card > :first-child > h2:first-child::before {
+    content: "┤ ";
+    content: "┤ " / "";
+    color: var(--rule);
+    font-weight: 400;
+  }
+  .card > h2:first-child::after,
+  .card > :first-child > h2:first-child::after {
+    content: " ├";
+    content: " ├" / "";
+    color: var(--rule);
+    font-weight: 400;
+  }
+  /* A heading row that also holds buttons keeps the buttons on the right. */
+  .card > :first-child:has(> h2:first-child) {
+    justify-content: flex-end;
+  }
 }

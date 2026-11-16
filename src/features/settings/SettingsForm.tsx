@@ -51,7 +51,7 @@ export function SettingsForm({ initial }: { initial: SettingsValues }) {
   }
 
   return (
-    <form onSubmit={save} className="card space-y-5 p-5" aria-labelledby="learner-heading">
+    <form onSubmit={save} className="card c-number space-y-5 p-5" aria-labelledby="learner-heading">
       <h2 id="learner-heading" className="text-lg font-semibold">
         Learner and tutor
       </h2>

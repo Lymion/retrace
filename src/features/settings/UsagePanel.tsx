@@ -35,7 +35,7 @@ export function UsagePanel() {
   const usage = data?.usage;
 
   return (
-    <section className="card space-y-3 p-5" aria-labelledby="usage-heading">
+    <section className="card c-cyan space-y-3 p-5" aria-labelledby="usage-heading">
       <h2 id="usage-heading" className="text-lg font-semibold">
         Token use
       </h2>

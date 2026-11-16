@@ -113,12 +113,12 @@ export function FileTree({
                 onClick={() => onSelect(file)}
                 aria-current={selected ? "true" : undefined}
                 className={`flex w-full items-center gap-1 truncate rounded-sm px-1 py-0.5 text-left font-mono text-[13px] ${
-                  selected ? "bg-ok/15" : "hover:bg-surface-2"
+                  selected ? "bg-surface-2 text-bright" : "hover:bg-surface-2"
                 } ${file.dimmed ? "opacity-40" : ""}`}
                 style={{ paddingLeft: depth * 12 + 8 }}
                 title={file.path}
               >
-                <span aria-hidden className="w-3 shrink-0 text-xs text-ok">
+                <span aria-hidden className="w-3 shrink-0 text-xs text-number">
                   {selected ? "❯" : ""}
                 </span>
                 <span

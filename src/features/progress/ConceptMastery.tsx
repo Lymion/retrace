@@ -16,9 +16,9 @@ export interface ConceptRow {
 }
 
 function band(mastery: number): { label: string; bar: string } {
-  if (mastery >= 0.7) return { label: "solid", bar: "bg-ok" };
-  if (mastery >= 0.4) return { label: "getting there", bar: "bg-warn" };
-  return { label: "needs work", bar: "bg-danger" };
+  if (mastery >= 0.7) return { label: "solid", bar: "bar-fill" };
+  if (mastery >= 0.4) return { label: "getting there", bar: "bar-fill" };
+  return { label: "needs work", bar: "bar-weak" };
 }
 
 export function ConceptMastery({
@@ -46,10 +46,10 @@ export function ConceptMastery({
   }
 
   return (
-    <section aria-labelledby="concepts-heading" className="card space-y-4 p-5">
+    <section aria-labelledby="concepts-heading" className="card c-accent space-y-4 p-5">
       <div className="flex flex-wrap items-center gap-3">
         <h2 id="concepts-heading" className="mr-auto text-lg font-semibold">
-          Concepts
+          concepts <span className="font-normal text-comment">· weakest first</span>
         </h2>
         {pendingQuestions > 0 && (
           <button type="button" className="btn text-xs" onClick={updateNow} disabled={busy}>
@@ -73,37 +73,36 @@ export function ConceptMastery({
         </EmptyState>
       ) : (
         <ul className="space-y-2">
-          {concepts.map((c) => {
-            const { label, bar } = band(c.mastery);
-            return (
-              <li
-                key={c.name}
-                className="grid gap-1 sm:grid-cols-[220px_1fr_auto] sm:items-center sm:gap-3"
-              >
-                <span className="text-sm">
-                  {c.name} <span className="text-xs text-muted">· {c.layer}</span>
-                </span>
-                <div
-                  className="term-bar"
-                  role="meter"
-                  aria-label={`${c.name} mastery`}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={Math.round(c.mastery * 100)}
-                  aria-valuetext={`${Math.round(c.mastery * 100)}%, ${label}`}
+          {[...concepts]
+            .sort((a, b) => a.mastery - b.mastery)
+            .map((c) => {
+              const { label, bar } = band(c.mastery);
+              return (
+                <li
+                  key={c.name}
+                  className="grid gap-1 sm:grid-cols-[220px_1fr_auto] sm:items-center sm:gap-3"
                 >
+                  <span className="text-sm">
+                    {c.name} <span className="text-xs text-muted">· {c.layer}</span>
+                  </span>
                   <div
-                    className={`h-full ${bar}`}
-                    style={{ width: `${Math.round(c.mastery * 100)}%` }}
-                  />
-                </div>
-                <span className="text-xs text-muted">
-                  {Math.round(c.mastery * 100)}% · {label}
-                </span>
-                {c.note && <span className="text-xs text-muted sm:col-span-3">{c.note}</span>}
-              </li>
-            );
-          })}
+                    className="term-bar"
+                    role="meter"
+                    aria-label={`${c.name} mastery`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(c.mastery * 100)}
+                    aria-valuetext={`${Math.round(c.mastery * 100)}%, ${label}`}
+                  >
+                    <div className={bar} style={{ width: `${Math.round(c.mastery * 100)}%` }} />
+                  </div>
+                  <span className="text-xs text-muted">
+                    {Math.round(c.mastery * 100)}% · {label}
+                  </span>
+                  {c.note && <span className="text-xs text-muted sm:col-span-3">{c.note}</span>}
+                </li>
+              );
+            })}
         </ul>
       )}
     </section>

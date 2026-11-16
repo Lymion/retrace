@@ -37,7 +37,7 @@ export function Checklist({ items: initial }: { items: ChecklistRow[] }) {
   const open = items.filter((i) => !i.done).length;
 
   return (
-    <section aria-labelledby="checklist-heading" className="card space-y-3 p-5">
+    <section aria-labelledby="checklist-heading" className="card c-warn space-y-3 p-5">
       <h2 id="checklist-heading" className="text-lg font-semibold">
         New-app checklist <span className="text-sm font-normal text-muted">· {open} open</span>
       </h2>
