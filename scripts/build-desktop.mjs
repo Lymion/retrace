@@ -50,15 +50,13 @@ writeFileSync(path.join(root, "electron", "dist", "package.json"), '{ "type": "c
 mkdirSync(path.join(root, "installer"), { recursive: true });
 cpSync(path.join(root, "src", "app", "favicon.ico"), path.join(root, "installer", "icon.ico"));
 
-// Where updates come from: a GitHub repository named in the shell, never in
-// the code. Without it the app still builds; it just cannot find updates.
+// Where updates come from: the GitHub repository in package.json (build.publish).
+// RETRACE_GH_OWNER / RETRACE_GH_REPO in the shell override it, for a fork.
 const { RETRACE_GH_OWNER: owner, RETRACE_GH_REPO: repo } = process.env;
 const publish =
   owner && repo
     ? `-c.publish.provider=github -c.publish.owner=${owner} -c.publish.repo=${repo}`
     : "";
-if (!publish)
-  console.log("RETRACE_GH_OWNER / RETRACE_GH_REPO not set: this build will not check for updates.");
 const args = process.argv.slice(2);
 if (!args.some((a) => a.startsWith("--publish"))) args.push("--publish never");
 run(`npx electron-builder --win ${publish} ${args.join(" ")}`.trim());

@@ -4,30 +4,33 @@
 //   npm run release            (bumps 0.1.0 → 0.1.1)
 //   npm run release -- minor   (bumps 0.1.0 → 0.2.0)
 //
-// Needs three variables in YOUR shell only. They are never written to a
-// file, bundled into the app, or printed:
-//   RETRACE_GH_OWNER  the GitHub user or organisation, e.g. your username
-//   RETRACE_GH_REPO   the repository name
-//   GH_TOKEN          a GitHub token that may create releases in that repository
+// Uploads to the repository in package.json (build.publish) as a published
+// release (not a draft), so installed apps see it at their next check. The upload needs
+// a GitHub token that may create releases there. It comes from GH_TOKEN in
+// YOUR shell if set, otherwise from your GitHub CLI sign-in (gh auth token).
+// Either way it is only handed to the build, never written to a file,
+// bundled into the app, or printed.
 import { execSync } from "node:child_process";
 
-const { RETRACE_GH_OWNER, RETRACE_GH_REPO, GH_TOKEN } = process.env;
-const missing = [
-  ["RETRACE_GH_OWNER", RETRACE_GH_OWNER],
-  ["RETRACE_GH_REPO", RETRACE_GH_REPO],
-  ["GH_TOKEN", GH_TOKEN],
-]
-  .filter(([, value]) => !value)
-  .map(([name]) => name);
-if (missing.length) {
-  console.error(
-    `Set ${missing.join(", ")} in your shell first (see the top of scripts/release.mjs).`,
-  );
+let token = process.env.GH_TOKEN;
+if (!token) {
+  try {
+    token = execSync("gh auth token", {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    token = "";
+  }
+}
+if (!token) {
+  console.error("No GitHub token: run `gh auth login`, or set GH_TOKEN in your shell.");
   process.exit(1);
 }
 
 const bump = ["patch", "minor", "major"].includes(process.argv[2]) ? process.argv[2] : "patch";
-const run = (command) => execSync(command, { stdio: "inherit" });
+const run = (command) =>
+  execSync(command, { stdio: "inherit", env: { ...process.env, GH_TOKEN: token } });
 
 run(`npm version ${bump} --no-git-tag-version`);
 // electron-builder reads GH_TOKEN from the environment and uploads the

@@ -78,6 +78,14 @@
       "output": "release",
       "buildResources": "installer"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Lymion",
+        "repo": "retrace",
+        "releaseType": "release"
+      }
+    ],
     "files": [
       "electron/dist/**/*",
       "package.json",

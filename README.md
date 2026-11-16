@@ -107,8 +107,12 @@ the Start menu and pin it if you like.
   The request carries nothing about your projects. When one is downloaded, a line appears under
   the title bar; **restart and update** installs it and reopens Retrace (your database is backed
   up first as `retrace.db.bak-<old version>`). Turn automatic checks off in Settings → Desktop
-  app. Updates only work in builds made with `RETRACE_GH_OWNER` and `RETRACE_GH_REPO` set.
-- **Publishing an update** (`npm run release`): see the top of `scripts/release.mjs`. Downloads
+  app. Updates come from the releases of the GitHub repository named under `build.publish` in
+  `package.json` (`Lymion/retrace`), which must be public. To point a fork elsewhere, set
+  `RETRACE_GH_OWNER` and `RETRACE_GH_REPO` in your shell before building.
+- **Publishing an update** (`npm run release`, or `npm run release -- minor`): bumps the
+  version, builds the installer and uploads it as a GitHub release, using `GH_TOKEN` from your
+  shell or else your `gh` sign-in. See the top of `scripts/release.mjs`. Downloads
   are checked against a hash from the release over HTTPS, but the app is unsigned, so it cannot
   check who built an update: anyone who can publish to that repository can ship code to your PC.
   Keep two-factor sign-in on your GitHub account.

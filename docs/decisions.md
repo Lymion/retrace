@@ -220,7 +220,9 @@ Big decisions (stack changes, new services, cut features) are asked first.
 - **The bridge exposes three things, not two:** update state, "install now", and "check now"
   (the Settings button). Nothing else from the computer reaches the page, and the main process
   only answers requests from the app's own origin.
-- **The repository is named in the shell** (`RETRACE_GH_OWNER`, `RETRACE_GH_REPO`) and the upload
-  token (`GH_TOKEN`) never leaves it.
+- **The repository is named in `package.json`** (`build.publish`: `Lymion/retrace`), since it is
+  public anyway and every build should find updates; `RETRACE_GH_OWNER` / `RETRACE_GH_REPO` in the
+  shell override it for a fork. The upload token never leaves the shell: `GH_TOKEN` if set, else
+  `gh auth token`, handed only to the build process.
 - **The database is copied before a new version's first launch** (`retrace.db.bak-<old version>`),
   before migrations run.
