@@ -155,7 +155,7 @@ Big decisions (stack changes, new services, cut features) are asked first.
 
 ### One-click start (Windows)
 
-- **The desktop shortcut runs `scripts/start-retrace.ps1`** in production mode (`next start`), which
+- (Replaced by the desktop app in plan-next part 3.) **The desktop shortcut ran `scripts/start-retrace.ps1`** in production mode (`next start`), which
   is much faster than dev mode. It installs dependencies on the first run and rebuilds only when a
   file under `src/` or a config file is newer than the last build; prompts and migrations are read
   at runtime, so editing them needs no rebuild.
@@ -213,3 +213,14 @@ Big decisions (stack changes, new services, cut features) are asked first.
   window), so other programs on the PC cannot use the local server.
 - **Standalone output only for the desktop build** (`RETRACE_DESKTOP_BUILD=1`), so `npm start`
   keeps working as before.
+
+### Automatic updates (plan-next part 4)
+
+- `electron-updater`: downloads and installs new versions from GitHub Releases; made for electron-builder's NSIS installers, so no update server of our own.
+- **The bridge exposes three things, not two:** update state, "install now", and "check now"
+  (the Settings button). Nothing else from the computer reaches the page, and the main process
+  only answers requests from the app's own origin.
+- **The repository is named in the shell** (`RETRACE_GH_OWNER`, `RETRACE_GH_REPO`) and the upload
+  token (`GH_TOKEN`) never leaves it.
+- **The database is copied before a new version's first launch** (`retrace.db.bak-<old version>`),
+  before migrations run.

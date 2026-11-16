@@ -2,12 +2,37 @@
 
 import { useState } from "react";
 import { ErrorState } from "@/components/states";
-import { errorMessage, postJson } from "@/lib/api-client";
+import { apiFetch, errorMessage, postJson } from "@/lib/api-client";
+import { UpdateControls } from "./UpdateControls";
 
 // Desktop app only: where Retrace keeps its data, and a button to open it.
 
-export function DesktopPanel({ folder, version }: { folder: string; version: string }) {
+export function DesktopPanel({
+  folder,
+  version,
+  autoUpdate: initialAuto,
+}: {
+  folder: string;
+  version: string;
+  autoUpdate: boolean;
+}) {
   const [error, setError] = useState<string | null>(null);
+  const [autoUpdate, setAutoUpdate] = useState(initialAuto);
+
+  async function saveAuto(value: boolean) {
+    setAutoUpdate(value);
+    setError(null);
+    try {
+      await apiFetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ autoUpdate: value }),
+      });
+    } catch (err) {
+      setAutoUpdate(!value);
+      setError(errorMessage(err));
+    }
+  }
 
   async function open() {
     setError(null);
@@ -34,6 +59,7 @@ export function DesktopPanel({ folder, version }: { folder: string; version: str
       <button type="button" className="btn" onClick={open}>
         open data folder
       </button>
+      <UpdateControls autoUpdate={autoUpdate} onAutoUpdate={saveAuto} />
       {error && <ErrorState message={error} />}
     </section>
   );

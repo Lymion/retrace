@@ -61,18 +61,10 @@ folder and no API key in its environment, so uploaded code can never make it rea
 
 ## 3. Run it
 
-### One click (Windows)
+### As a Windows app
 
-Create a **Retrace** shortcut on your desktop once:
-
-```bash
-npm run shortcut
-```
-
-Double-click it whenever you want to study. It opens a small window, builds Retrace if the code
-changed since last time (a minute or two), starts it, and opens **http://127.0.0.1:3000** in your
-browser. Keep that window open while you use Retrace; close it to stop. Double-clicking again while
-Retrace is running just opens the browser. Run `npm run shortcut` again if you move the folder.
+Install the desktop app (see **Desktop app** below) and open Retrace from the Start menu. The old
+`npm run shortcut` desktop shortcut is gone; if you still have it, delete it.
 
 ### From a terminal
 
@@ -111,6 +103,15 @@ the Start menu and pin it if you like.
 - **API key:** put `ANTHROPIC_API_KEY=...` in `%APPDATA%\Retrace\.env`, then restart the app.
 - **Personal use only** applies here too: an installer you give to other people must use the API
   key, never your Claude login.
+- **Updates:** the app asks GitHub on launch and every few hours whether a newer version exists.
+  The request carries nothing about your projects. When one is downloaded, a line appears under
+  the title bar; **restart and update** installs it and reopens Retrace (your database is backed
+  up first as `retrace.db.bak-<old version>`). Turn automatic checks off in Settings → Desktop
+  app. Updates only work in builds made with `RETRACE_GH_OWNER` and `RETRACE_GH_REPO` set.
+- **Publishing an update** (`npm run release`): see the top of `scripts/release.mjs`. Downloads
+  are checked against a hash from the release over HTTPS, but the app is unsigned, so it cannot
+  check who built an update: anyone who can publish to that repository can ship code to your PC.
+  Keep two-factor sign-in on your GitHub account.
 - `npm run desktop:dev` opens the app window against `npm run dev`, for development.
 
 ## 4. Your first tour (about 10 minutes)

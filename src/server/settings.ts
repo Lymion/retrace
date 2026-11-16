@@ -24,6 +24,8 @@ export const SettingsSchema = z.object({
   economyMode: z.boolean(),
   /** Lesson and tutor text in monospace (the terminal look) or a sans font, easier for long reading. */
   lessonFont: z.enum(["mono", "sans"]),
+  /** Desktop app: check GitHub for a new version on launch and every few hours. */
+  autoUpdate: z.boolean(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -43,6 +45,7 @@ export function defaultSettings(): Settings {
     activeProvider: env.ANTHROPIC_API_KEY ? "api-key" : "claude-login",
     economyMode: false,
     lessonFont: "mono",
+    autoUpdate: true,
   };
 }
 

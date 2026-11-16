@@ -9,7 +9,7 @@ import { getSettings } from "@/server/settings";
 export const metadata = { title: "Settings · Retrace" };
 
 export default function SettingsPage() {
-  const { activeProvider: _active, ...settings } = getSettings();
+  const { activeProvider: _active, autoUpdate, ...settings } = getSettings();
   return (
     <div className="mx-auto w-full max-w-3xl space-y-7 p-4 sm:p-6">
       <PageHeader path={[{ label: "settings" }]} title="Settings">
@@ -22,6 +22,7 @@ export default function SettingsPage() {
         <DesktopPanel
           folder={dataDir()}
           version={process.env.RETRACE_APP_VERSION ?? process.env.NEXT_PUBLIC_APP_VERSION ?? ""}
+          autoUpdate={autoUpdate}
         />
       )}
     </div>

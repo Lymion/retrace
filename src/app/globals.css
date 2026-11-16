@@ -655,6 +655,16 @@ body {
   .card:focus-within {
     border-color: var(--c);
   }
+  /* A heading row that also holds buttons keeps the buttons on the right. */
+  .card > :first-child:has(> h2:first-child) {
+    justify-content: flex-end;
+  }
+}
+
+/* Card titles set into the border. In the utilities layer with a more
+   specific selector, so they win over the text-size utilities the headings
+   carry. */
+@layer utilities {
   .card > h2:first-child,
   .card > :first-child > h2:first-child {
     position: absolute;
@@ -685,9 +695,5 @@ body {
     content: " ├" / "";
     color: var(--rule);
     font-weight: 400;
-  }
-  /* A heading row that also holds buttons keeps the buttons on the right. */
-  .card > :first-child:has(> h2:first-child) {
-    justify-content: flex-end;
   }
 }

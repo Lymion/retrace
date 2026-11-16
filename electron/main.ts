@@ -1,9 +1,10 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { BrowserWindow, app, dialog, session, shell } from "electron";
+import { startUpdater } from "./updater";
 
 // Retrace as a desktop app. The main process starts the Next.js server as a
 // child process on 127.0.0.1 with a free port, waits until it answers, then
@@ -20,6 +21,7 @@ const BG = "#0f1117";
 let server: ChildProcess | null = null;
 let win: BrowserWindow | null = null;
 let origin = DEV_URL;
+let serverSecret = "";
 let quitting = false;
 
 // One Retrace at a time: a second launch focuses the window that is open.
@@ -60,7 +62,9 @@ function freePort(): Promise<number> {
     probe.on("error", reject);
     probe.listen(0, "127.0.0.1", () => {
       const address = probe.address();
-      probe.close(() => (typeof address === "object" && address ? resolve(address.port) : reject()));
+      probe.close(() =>
+        typeof address === "object" && address ? resolve(address.port) : reject(),
+      );
     });
   });
 }
@@ -115,13 +119,30 @@ async function offerOldData(dir: string): Promise<void> {
     return;
   }
   for (const name of ["retrace.db", "retrace.db-wal", "retrace.db-shm"]) {
-    if (existsSync(path.join(from, name))) copyFileSync(path.join(from, name), path.join(dir, name));
+    if (existsSync(path.join(from, name)))
+      copyFileSync(path.join(from, name), path.join(dir, name));
   }
+}
+
+/**
+ * The first launch of a new version backs up the database before the server
+ * applies its migrations: retrace.db.bak-<old version>, in the data folder.
+ */
+function backupBeforeUpgrade(dir: string) {
+  const marker = path.join(dir, "last-version.txt");
+  const previous = existsSync(marker) ? readFileSync(marker, "utf8").trim() : null;
+  const current = app.getVersion();
+  const db = path.join(dir, "retrace.db");
+  if (previous && previous !== current && existsSync(db)) {
+    copyFileSync(db, path.join(dir, `retrace.db.bak-${previous}`));
+  }
+  writeFileSync(marker, current);
 }
 
 async function startServer(): Promise<{ url: string; secret: string }> {
   const dir = dataDir();
   await offerOldData(dir);
+  backupBeforeUpgrade(dir);
   const port = await freePort();
   const secret = randomBytes(32).toString("hex");
   const serverDir = path.join(process.resourcesPath, "server");
@@ -151,7 +172,8 @@ async function startServer(): Promise<{ url: string; secret: string }> {
   });
   server.on("exit", (code) => {
     server = null;
-    if (!quitting && code !== 0) fail(new Error(`The Retrace server stopped (exit code ${code}).`), lastError);
+    if (!quitting && code !== 0)
+      fail(new Error(`The Retrace server stopped (exit code ${code}).`), lastError);
   });
 
   const url = `http://127.0.0.1:${port}`;
@@ -172,7 +194,9 @@ function lockDown(window: BrowserWindow) {
     return { action: "deny" };
   });
   contents.on("will-attach-webview", (event) => event.preventDefault());
-  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) =>
+    callback(false),
+  );
 }
 
 async function start() {
@@ -180,6 +204,7 @@ async function start() {
     if (!DEV) {
       const { url, secret } = await startServer();
       origin = url;
+      serverSecret = secret;
       await session.defaultSession.cookies.set({
         url,
         name: COOKIE,
@@ -212,16 +237,23 @@ async function start() {
     win.once("ready-to-show", () => win?.show());
     win.on("closed", () => (win = null));
     await win.loadURL(origin);
-    afterWindow(win);
+    if (app.isPackaged && !DEV) {
+      startUpdater(win, {
+        origin,
+        // The learner can turn automatic checks off in Settings.
+        autoCheck: async () => {
+          const response = await fetch(`${origin}/api/settings`, {
+            headers: { cookie: `${COOKIE}=${serverSecret}` },
+          });
+          const body = (await response.json()) as { settings?: { autoUpdate?: boolean } };
+          return body.settings?.autoUpdate !== false;
+        },
+        beforeInstall: shutdownServer,
+      });
+    }
   } catch (error) {
     fail(error);
   }
-}
-
-/** Hook for things that need the window (the updater, in electron/updater.ts). */
-let afterWindow: (window: BrowserWindow) => void = () => {};
-export function onWindow(hook: (window: BrowserWindow) => void) {
-  afterWindow = hook;
 }
 
 function fail(error: unknown, detail = "") {
@@ -245,7 +277,7 @@ app.on("before-quit", () => {
 app.on("window-all-closed", () => app.quit());
 
 /** Used by the updater: stop the server cleanly before an update installs. */
-export function shutdownServer() {
+function shutdownServer() {
   quitting = true;
   stopServer();
 }
