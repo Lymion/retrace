@@ -1,6 +1,6 @@
 {
   "name": "retrace",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Learn app development by rebuilding your own finished projects, level by level.",
@@ -82,8 +82,7 @@
       {
         "provider": "github",
         "owner": "Lymion",
-        "repo": "retrace",
-        "releaseType": "release"
+        "repo": "retrace"
       }
     ],
     "files": [
