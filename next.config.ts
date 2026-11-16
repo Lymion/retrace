@@ -11,6 +11,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The desktop build (npm run dist) needs a self-contained server; plain
+  // `npm start` keeps the normal output.
+  output: process.env.RETRACE_DESKTOP_BUILD === "1" ? "standalone" : undefined,
   // Native or Node-only packages stay out of the bundle and load with require().
   serverExternalPackages: [
     "better-sqlite3",

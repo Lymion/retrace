@@ -54,3 +54,7 @@ venv/
 # OS junk
 Thumbs.db
 desktop.ini
+
+# desktop app build output
+/electron/dist/
+/release/

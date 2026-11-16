@@ -12,7 +12,7 @@
     "build": "next build",
     "start": "next start -H 127.0.0.1 -p 3000",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p electron/tsconfig.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
@@ -23,7 +23,10 @@
     "live-check": "tsx scripts/live-check.ts",
     "shortcut": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-shortcut.ps1",
     "icon": "node scripts/make-icon.mjs",
-    "postinstall": "node scripts/copy-monaco.mjs"
+    "postinstall": "node scripts/copy-monaco.mjs",
+    "electron:build": "esbuild electron/main.ts electron/preload.ts --bundle --platform=node --format=cjs --target=node22 --external:electron --outdir=electron/dist",
+    "desktop:dev": "npm run electron:build && electron electron/dist/main.js --dev",
+    "dist": "node scripts/build-desktop.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.312",
@@ -53,6 +56,9 @@
     "@types/react-dom": "^19",
     "@types/yauzl": "^3.4.0",
     "drizzle-kit": "^0.31.11",
+    "electron": "^45.3.1",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "fflate": "^0.8.3",
@@ -60,5 +66,64 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "vitest": "^5.0.5"
+  },
+  "main": "electron/dist/main.js",
+  "build": {
+    "appId": "app.retrace.desktop",
+    "productName": "Retrace",
+    "executableName": "Retrace",
+    "copyright": "Personal use",
+    "directories": {
+      "output": "release",
+      "buildResources": "installer"
+    },
+    "files": [
+      "electron/dist/**/*",
+      "package.json",
+      "!**/node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "server",
+        "filter": [
+          "**/*",
+          ".next/**/*",
+          "!node_modules"
+        ]
+      },
+      {
+        "from": ".next/standalone/node_modules",
+        "to": "server/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "installer/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createStartMenuShortcut": true,
+      "createDesktopShortcut": false,
+      "shortcutName": "Retrace",
+      "uninstallDisplayName": "Retrace",
+      "include": "installer/installer.nsh",
+      "artifactName": "Retrace-Setup-${version}.exe"
+    },
+    "npmRebuild": false
   }
 }

@@ -180,3 +180,36 @@ Big decisions (stack changes, new services, cut features) are asked first.
   parser is a pure function with its own tests (`src/lib/commands.ts`).
 - **Monaco gets a matching theme** (`retrace-terminal`, defined in `CodeViewer`), so the editor
   and the rest of the screen share one background and palette.
+
+### Token savings (plan-next part 1)
+
+- **Token counts are stored per call** (`ai_usage`: task, provider, model, four counts, time).
+  No prompt, code or reply text, so the table is safe to keep.
+- **Only chat and lessons are marked for caching.** One-shot JSON tasks are not: writing to the
+  cache costs extra and nothing would read it back.
+- **A saved lesson is reused** unless the learner presses "regenerate".
+- **Economy mode** moves every task to the fast model; one helper (`ai/models.ts`) picks the model
+  for every call site.
+
+### Redesign (plan-next part 2)
+
+- **Ink blue-black instead of neutral grey**, with colour by role: each pane, tab and step sets
+  `--c`, and primary buttons and focused borders use it. Green stays for "done" and the tutor.
+  Contrast was checked for every text colour on every surface (lowest 5.1:1).
+- **Titled cards become panes in CSS** (`.card > h2:first-child`), so every screen got the TUI
+  look without rewriting each component.
+- **Ctrl K opens a command list** built on the same commands as the `:` line; it does not animate,
+  because it is opened from the keyboard many times a day.
+
+### Desktop app (plan-next part 3)
+
+- `electron`: the desktop shell; it ships Node, which the server needs for SQLite and the Agent SDK's Claude Code binary.
+- `electron-builder`: builds the Windows installer (NSIS, wizard mode, per-user so no admin prompt).
+- `esbuild`: bundles `electron/main.ts` and `preload.ts` into single files, so the app package needs no `node_modules` (it was already installed through Vite; now listed directly).
+- **The server runs as Electron's own binary in Node mode** (`ELECTRON_RUN_AS_NODE`) from the
+  Next standalone output, kept outside the app archive in `resources/server`.
+- **better-sqlite3 needs no rebuild**: its prebuilt files use Node-API, which works in Electron.
+- **A fresh secret per launch** is required on every request (a cookie set only on the app's own
+  window), so other programs on the PC cannot use the local server.
+- **Standalone output only for the desktop build** (`RETRACE_DESKTOP_BUILD=1`), so `npm start`
+  keeps working as before.

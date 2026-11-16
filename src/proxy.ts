@@ -1,9 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { desktopRequestAllowed } from "@/lib/desktop-secret";
 
 // Sets a strict Content Security Policy with a fresh nonce on every page
 // request. Next.js reads the nonce from the request header and stamps it on
 // its own scripts, so any injected <script> without it will not run.
 export function proxy(request: NextRequest) {
+  // Desktop app: only its own window may use the local server.
+  if (!desktopRequestAllowed(request.headers.get("cookie"))) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
+  // API routes need only that check; the CSP below is for pages.
+  if (request.nextUrl.pathname.startsWith("/api/")) return NextResponse.next();
+
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
 
@@ -35,14 +43,10 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    {
-      // Pages only. API routes return JSON or text streams, and skipping them
-      // here keeps large uploads out of the proxy's request buffer.
-      source: "/((?!api|_next/static|_next/image|monaco|favicon.ico).*)",
-      missing: [
-        { type: "header", key: "next-router-prefetch" },
-        { type: "header", key: "purpose", value: "prefetch" },
-      ],
-    },
+    // Pages and API routes, prefetches included (the desktop check must not
+    // be skippable), except static files and the zip upload. Skipping the
+    // upload keeps large zips out of the proxy's request buffer; that route
+    // checks the desktop secret itself.
+    "/((?!api/projects/upload|_next/static|_next/image|monaco|favicon.ico).*)",
   ],
 };

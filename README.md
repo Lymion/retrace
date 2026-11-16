@@ -87,6 +87,32 @@ npm start
 Or `npm run dev` while changing Retrace's own code (slower, reloads on save). Either way, open
 **http://127.0.0.1:3000**. The database (`data/retrace.db`) is created on first start.
 
+## Desktop app (Windows)
+
+You can also install Retrace as a normal Windows app with its own window, Start menu entry and
+uninstaller.
+
+```bash
+npm run dist
+```
+
+This builds `release/Retrace-Setup-<version>.exe`. Run it, choose a folder (or keep the default),
+and tick "Create a desktop shortcut" on the last page if you want one. Then open **Retrace** from
+the Start menu and pin it if you like.
+
+- **Size:** about 260 MB to download and about 780 MB installed, mostly the Claude Code program
+  the Claude login needs.
+- **Windows warning:** the installer is not signed, so SmartScreen says "Windows protected your
+  PC". Click **More info**, then **Run anyway**. Signing removes this but needs a paid
+  certificate.
+- **Your data** lives in `%APPDATA%\Retrace` (database and `.env`). Settings has an "open data
+  folder" button. On first launch the app offers to copy projects from an older `data/` folder;
+  the original is never changed.
+- **API key:** put `ANTHROPIC_API_KEY=...` in `%APPDATA%\Retrace\.env`, then restart the app.
+- **Personal use only** applies here too: an installer you give to other people must use the API
+  key, never your Claude login.
+- `npm run desktop:dev` opens the app window against `npm run dev`, for development.
+
 ## 4. Your first tour (about 10 minutes)
 
 1. Build the two sample projects into zips:

@@ -25,6 +25,9 @@ const eslintConfig = defineConfig([
     "public/monaco/**",
     "drizzle/**",
     "data/**",
+    // Desktop build output.
+    "release/**",
+    "electron/dist/**",
     // Sample projects are teaching material in other styles and languages.
     "samples/**",
   ]),

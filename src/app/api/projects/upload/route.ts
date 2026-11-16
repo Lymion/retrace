@@ -1,3 +1,4 @@
+import { desktopRequestAllowed } from "@/lib/desktop-secret";
 import { z } from "zod";
 import { errorResponse, handleRouteError } from "@/server/http";
 import { streamToFile } from "@/server/ingest/github";
@@ -22,6 +23,10 @@ const FileNameSchema = z
   .refine((value) => /\.zip$/i.test(value), { message: "Only .zip files can be uploaded." });
 
 export async function POST(request: Request) {
+  // This route skips the proxy (see src/proxy.ts), so it checks the desktop secret itself.
+  if (!desktopRequestAllowed(request.headers.get("cookie"))) {
+    return errorResponse(403, "Forbidden.");
+  }
   const name = FileNameSchema.safeParse(request.headers.get("x-filename") ?? "");
   if (!name.success)
     return errorResponse(400, name.error.issues[0]?.message ?? "Only .zip files can be uploaded.");
